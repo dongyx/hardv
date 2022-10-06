@@ -2,21 +2,33 @@
 #define CARD_H
 
 #include <stdio.h>
-#define MAXATTR 8
+#include <time.h>
+
+enum {
+	CARD_ESYSL,
+	CARD_ELINE,
+	CARD_ESIZE,
+	CARD_ENOKEY
+};
 
 struct attr {
 	char *key;
 	char *val;
+	struct attr *next;
 };
 
 struct card {
-	char *front;
-	char *back;
-	struct attr attr[MAXATTR];
-	int nattr;
-	long prev, next;
+	struct attr *attr;
 };
 
-int readcard(FILE *fp, struct card *card);
+extern int carderr;
+
+int cardread(FILE *fp, struct card *card);
+int cardwrite(FILE *fp, struct card *card);
+void carddestr(struct card *card);
+char *cardget(struct card *card, char *key);
+int cardset(struct card *card, char *key, char *val, int creat);
+char *cardestr(void);
+void cardperr(char *s);
 
 #endif
