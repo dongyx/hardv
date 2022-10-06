@@ -57,10 +57,10 @@ main(int argc, char **argv)
 		if (!(fp = fopen(*argv, "w")))
 			quit(perror, "fopen");
 		for (i = 0; i < ncard; i++) {
+			if (i && fputc('\n', fp) == EOF)
+				quit(perror, "fputc");
 			if (cardwrite(fp, &cardtab[i]) == -1)
 				quit(cardperr, "cardwrite");
-			if (fputc('\n', fp) == EOF)
-				quit(perror, "fputc");
 			carddestr(&cardtab[i]);
 		}
 		fclose(fp);
@@ -108,14 +108,14 @@ static void learn(struct card *card, time_t now)
 	if ((diff = next - prev) < day)
 		diff = day;
 CHECK:
-	printf("%s\n", getfront(card));
+	printf("%s\n\n", getfront(card));
 	fputs("press <ENTER> to check the back ", stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "\n"))
 		goto CHECK;
-	printf("%s\n", getback(card));
+	printf("\n%s\n", getback(card));
 QUERY:
-	fputs("do you recall? (y/n/c) ", stdout);
+	fputs("\ndo you recall? (y/n/c) ", stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "c\n"))
 		goto QUERY;

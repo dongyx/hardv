@@ -20,6 +20,7 @@ int cardread(FILE *fp, struct card *card)
 
 	attr = NULL;
 	*(vp = vbuf) = '\0';
+	memset(card, 0, sizeof *card);
 	while (fgets(line, sizeof line, fp)) {
 		n = strlen(line);
 		if (line[n - 1] != '\n' && !feof(fp))
@@ -95,9 +96,8 @@ int cardwrite(FILE *fp, struct card *card)
 			if (fputc(*i, fp) == EOF)
 				eret(CARD_ESYSL, -1);
 		}
-		if (!*attr->val || *(i - 1) != '\n')
-			if (fputc('\n', fp) == EOF)
-				eret(CARD_ESYSL, -1);
+		if (fputc('\n', fp) == EOF)
+			eret(CARD_ESYSL, -1);
 	}
 	return 0;
 }
@@ -174,6 +174,11 @@ void cardperr(char *s)
 
 static int saveattrv(struct attr *attr, char *buf)
 {
+	int n;
+
+	n = strlen(buf);
+	if (n > 0 && buf[n - 1] == '\n')
+		buf[n - 1] = '\0';
 	if (!(attr->val = strdup(buf)))
 		eret(CARD_ESYSL, -1);
 	return 0;
