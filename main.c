@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 #include <signal.h>
 #include "card.h"
 #define MAXCARD 65536
@@ -10,33 +11,25 @@
 #define _S(x) #x
 #define S(x) _S(x)
 
-static const char iso8601[] = "%Y-%m-%d %H:%M:%S %z";
-const int savesigs[] = { SIGTERM, SIGINT, SIGHUP };
-static sigset_t savesigset, osigset;
 static char *curfile;
 static struct card cardtab[MAXCARD];
-static int ncard, plan[MAXCARD];
-static void validcard(struct card *card);
-static int plancmp(int *i, int *j);
-static void learn(struct card *card, time_t now);
-static void saveback(int signo);
-static char *getfront(struct card *card);
-static char *getback(struct card *card);
-static time_t getprev(struct card *card);
-static time_t getnext(struct card *card);
-static time_t gettime(struct card *card, char *key);
-static int setprev(struct card *card, time_t t);
-static int setnext(struct card *card, time_t t);
-static int settime(struct card *card, char *key, time_t t);
+static int ncard;
+enum {
+	SIGLOCK_INIT,
+	SIGLOCK_LOCK,
+	SIGLOCK_UNLOCK
+};
+static void siglock(int act);
+static void loadctab(char *path);
+static void schedule(time_t now);
+static void dumpctab(int signo);
 static void pversion(FILE *fp);
 
 main(int argc, char **argv)
 {
-	struct card card, *cardp;
 	time_t now;
-	FILE *fp;
-	int n, i;
 
+	now = time(NULL);
 	if (argc < 2) {
 		pversion(stderr);
 		return 1;
@@ -45,44 +38,124 @@ main(int argc, char **argv)
 		pversion(stdout);
 		return 0;
 	}
-	sigemptyset(&savesigset);
-	for (i = 0; i < sizeof savesigs / sizeof savesigs[0]; i++)
-		sigaddset(&savesigset, savesigs[i]);
-	sigprocmask(SIG_BLOCK, &savesigset, &osigset);
-	for (i = 0; i < sizeof savesigs / sizeof savesigs[0]; i++)
-		signal(savesigs[i], saveback);
-	now = time(0);
+	siglock(SIGLOCK_INIT);
 	while (*++argv) {
-		curfile = *argv;
-		if (!(fp = fopen(*argv, "r")))
-			quit(perror, "fopen");
-		while ((n = cardread(fp, &card)) > 0) {
-			if (ncard >= MAXCARD) {
-				fprintf(stderr,
-					"too many cards in one file\n");
-				exit(1);
-			}
-			validcard(&card);
-			cardtab[ncard] = card;
-			plan[ncard] = ncard;
-			ncard++;
-		}
-		if (n == -1)
-			quit(cardperr, "cardread");
-		fclose(fp);
-		sigprocmask(SIG_SETMASK, &osigset, NULL);
-		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
-		for (i = 0; i < ncard; i++) {
-			cardp = &cardtab[plan[i]];
-			if (getnext(cardp) <= time(0))
-				learn(cardp, now);
-		}
-		saveback(0);
+		loadctab(*argv);
+		schedule(now);
+		dumpctab(0);
 	}
 	return 0;
 }
 
-static void validcard(struct card *card)
+static void pversion(FILE *fp)
+{
+	fprintf(fp, "hardv %s\n", S(VERSION));
+}
+
+static void siglock(int act)
+{
+	static const int sig[] = { SIGTERM, SIGINT, SIGHUP };
+	static sigset_t set, oset;
+	int i;
+
+	switch (act) {
+	case SIGLOCK_INIT:
+		sigemptyset(&set);
+		for (i = 0; i < sizeof sig / sizeof sig[0]; i++)
+			sigaddset(&set, sig[i]);
+		sigprocmask(SIG_BLOCK, &set, &oset);
+		for (i = 0; i < sizeof sig / sizeof sig[0]; i++)
+			signal(sig[i], dumpctab);
+		sigprocmask(SIG_SETMASK, &oset, NULL);
+		break;
+	case SIGLOCK_LOCK:
+		sigprocmask(SIG_BLOCK, &set, &oset);
+		break;
+	case SIGLOCK_UNLOCK:
+		sigprocmask(SIG_SETMASK, &oset, NULL);
+	}
+}
+
+static void validc(struct card *card);
+static int plancmp(int *i, int *j);
+static void recall(struct card *card, time_t now);
+static char *getfront(struct card *card);
+static char *getback(struct card *card);
+static time_t getprev(struct card *card);
+static time_t getnext(struct card *card);
+static int setprev(struct card *card, time_t t);
+static int setnext(struct card *card, time_t t);
+
+static void loadctab(char *path)
+{
+	struct card card;
+	FILE *fp;
+	int n;
+
+	siglock(SIGLOCK_LOCK);
+	curfile = path;
+	ncard = 0;
+	if (!(fp = fopen(path, "r")))
+		quit(perror, "fopen");
+	while ((n = cardread(fp, &card)) > 0) {
+		if (ncard >= MAXCARD) {
+			fprintf(stderr,
+				"too many cards in one file\n");
+			exit(1);
+		}
+		validc(&card);
+		cardtab[ncard] = card;
+		ncard++;
+	}
+	if (n == -1)
+		quit(cardperr, "cardread");
+	fclose(fp);
+	siglock(SIGLOCK_UNLOCK);
+}
+
+static void schedule(time_t now)
+{
+	int plan[MAXCARD], n, i;
+	struct card *card;
+
+	for (i = 0; i < ncard; i++)
+		plan[i] = i;
+	qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
+	for (n = i = 0; i < ncard; i++) {
+		card = &cardtab[plan[i]];
+		if (getnext(card) <= time(0)) {
+			if (n++)
+				putchar('\n');
+			recall(card, now);
+		}
+	}
+}
+
+static void dumpctab(int signo)
+{
+	FILE *fp;
+	int i;
+
+	siglock(SIGLOCK_LOCK);
+	if (curfile) {
+		if (!(fp = fopen(curfile, "w")))
+			quit(perror, "fopen");
+		for (i = 0; i < ncard; i++) {
+			if (i && fputc('\n', fp) == EOF)
+				quit(perror, "fputc");
+			if (cardwrite(fp, &cardtab[i]) == -1)
+				quit(cardperr, "cardwrite");
+			carddestr(&cardtab[i]);
+		}
+		fclose(fp);
+		if (signo > 0)
+			exit(128 + signo);
+		curfile = NULL;
+	}
+	siglock(SIGLOCK_UNLOCK);
+}
+
+static void validc(struct card *card)
 {
 	char *msg;
 
@@ -110,75 +183,51 @@ static int plancmp(int *i, int *j)
 	return 0;
 }
 
-static void learn(struct card *card, time_t now)
+static void recall(struct card *card, time_t now)
 {
 	const time_t day = 60*60*24;
 	char in[BUFSIZ];
 	time_t diff, prev, next;
 
-	if (0 == (prev = getprev(card)))
+	if ((prev = getprev(card)) == 0)
 		prev = now;	
 	next = getnext(card);
 	if ((diff = next - prev) < day)
 		diff = day;
-CHECK:
 	printf("%s\n\n", getfront(card));
-	fputs("press <ENTER> to check the back ", stdout);
+CHECK:
+	fputs("press <ENTER> to check the back\n", stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "\n"))
 		goto CHECK;
-	printf("\n%s\n", getback(card));
+	printf("%s\n", getback(card));
 QUERY:
-	fputs("\ndo you recall? (y/n/s) ", stdout);
+	fputs("\ndo you recall? (y/n/s)\n", stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
 		goto QUERY;
+	siglock(SIGLOCK_LOCK);
 	switch (in[0]) {
 	case 'y':
-		sigprocmask(SIG_BLOCK, &savesigset, &osigset);
 		if (setprev(card, now) == -1)
 			quit(cardperr, "setprev");
 		if (setnext(card, now + 2*diff) == -1)
 			quit(cardperr, "setprev");
-		sigprocmask(SIG_SETMASK, &osigset, NULL);
 		break;
 	case 'n':
-		sigprocmask(SIG_BLOCK, &savesigset, &osigset);
 		if (setprev(card, now) == -1)
 			quit(cardperr, "setprev");
 		if (setnext(card, now + day) == -1)
 			quit(cardperr, "setprev");
-		sigprocmask(SIG_SETMASK, &osigset, NULL);
 		break;
 	case 's':
 		break;
 	}
-	putchar('\n');
+	siglock(SIGLOCK_UNLOCK);
 }
 
-static void saveback(int signo)
-{
-	FILE *fp;
-	int i;
-
-	sigprocmask(SIG_BLOCK, &savesigset, &osigset);
-	if (curfile) {
-		if (!(fp = fopen(curfile, "w")))
-			quit(perror, "fopen");
-		for (i = 0; i < ncard; i++) {
-			if (i && fputc('\n', fp) == EOF)
-				quit(perror, "fputc");
-			if (cardwrite(fp, &cardtab[i]) == -1)
-				quit(cardperr, "cardwrite");
-			carddestr(&cardtab[i]);
-		}
-		fclose(fp);
-		if (signo > 0)
-			exit(128 + signo);
-	}
-	curfile = NULL;
-	sigprocmask(SIG_SETMASK, &osigset, NULL);
-}
+static time_t gettime(struct card *card, char *key);
+static int settime(struct card *card, char *key, time_t t);
 
 static char *getfront(struct card *card)
 {
@@ -210,6 +259,8 @@ static int setnext(struct card *card, time_t t)
 	return settime(card, "NEXT", t);
 }
 
+static const char iso8601[] = "%Y-%m-%d %H:%M:%S %z";
+
 static int settime(struct card *card, char *key, time_t t)
 {
 	char buf[(sizeof iso8601 / sizeof *iso8601) * 8];
@@ -231,9 +282,4 @@ static time_t gettime(struct card *card, char *key)
 		exit(1);
 	}
 	return mktime(&buf);
-}
-
-static void pversion(FILE *fp)
-{
-	fprintf(fp, "hardv %s\n", S(VERSION));
 }
