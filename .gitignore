@@ -1,0 +1,6 @@
+/hardv
+.DS_Store
+*.swp
+*.d
+*.o
+release

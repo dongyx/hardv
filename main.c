@@ -71,8 +71,6 @@ main(int argc, char **argv)
 			quit(cardperr, "cardread");
 		fclose(fp);
 		sigprocmask(SIG_SETMASK, &osigset, NULL);
-		puts("muhaha");
-		getchar();
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 		for (i = 0; i < ncard; i++) {
 			cardp = &cardtab[plan[i]];
@@ -131,9 +129,9 @@ CHECK:
 		goto CHECK;
 	printf("\n%s\n", getback(card));
 QUERY:
-	fputs("\ndo you recall? (y/n/c) ", stdout);
+	fputs("\ndo you recall? (y/n/s) ", stdout);
 	fgets(in, sizeof in, stdin);
-	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "c\n"))
+	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
 		goto QUERY;
 	switch (in[0]) {
 	case 'y':
@@ -152,7 +150,7 @@ QUERY:
 			quit(cardperr, "setprev");
 		sigprocmask(SIG_SETMASK, &osigset, NULL);
 		break;
-	case 'c':
+	case 's':
 		break;
 	}
 	putchar('\n');
