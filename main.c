@@ -3,17 +3,23 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include <signal.h>
 #include "card.h"
 #define MAXCARD 65536
 #define quit(f, s) do { f(s); exit(1); } while (0)
+#define _S(x) #x
+#define S(x) _S(x)
 
 static const char iso8601[] = "%Y-%m-%d %H:%M:%S %z";
-static const int tmstrlen = (sizeof iso8601 / sizeof *iso8601) * 8;
+const int savesigs[] = { SIGTERM, SIGINT, SIGHUP };
+static sigset_t savesigset, osigset;
+static char *curfile;
 static struct card cardtab[MAXCARD];
 static int ncard, plan[MAXCARD];
 static void validcard(struct card *card);
 static int plancmp(int *i, int *j);
 static void learn(struct card *card, time_t now);
+static void saveback(int signo);
 static char *getfront(struct card *card);
 static char *getback(struct card *card);
 static time_t getprev(struct card *card);
@@ -22,6 +28,7 @@ static time_t gettime(struct card *card, char *key);
 static int setprev(struct card *card, time_t t);
 static int setnext(struct card *card, time_t t);
 static int settime(struct card *card, char *key, time_t t);
+static void pversion(FILE *fp);
 
 main(int argc, char **argv)
 {
@@ -30,8 +37,23 @@ main(int argc, char **argv)
 	FILE *fp;
 	int n, i;
 
+	if (argc < 2) {
+		pversion(stderr);
+		return 1;
+	}
+	if (!strcmp(argv[1], "-v")) {
+		pversion(stdout);
+		return 0;
+	}
+	sigemptyset(&savesigset);
+	for (i = 0; i < sizeof savesigs / sizeof savesigs[0]; i++)
+		sigaddset(&savesigset, savesigs[i]);
+	sigprocmask(SIG_BLOCK, &savesigset, &osigset);
+	for (i = 0; i < sizeof savesigs / sizeof savesigs[0]; i++)
+		signal(savesigs[i], saveback);
 	now = time(0);
 	while (*++argv) {
+		curfile = *argv;
 		if (!(fp = fopen(*argv, "r")))
 			quit(perror, "fopen");
 		while ((n = cardread(fp, &card)) > 0) {
@@ -48,22 +70,16 @@ main(int argc, char **argv)
 		if (n == -1)
 			quit(cardperr, "cardread");
 		fclose(fp);
-		qsort(plan, ncard, sizeof plan[0], (void *)plancmp);
+		sigprocmask(SIG_SETMASK, &osigset, NULL);
+		puts("muhaha");
+		getchar();
+		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 		for (i = 0; i < ncard; i++) {
 			cardp = &cardtab[plan[i]];
 			if (getnext(cardp) <= time(0))
 				learn(cardp, now);
 		}
-		if (!(fp = fopen(*argv, "w")))
-			quit(perror, "fopen");
-		for (i = 0; i < ncard; i++) {
-			if (i && fputc('\n', fp) == EOF)
-				quit(perror, "fputc");
-			if (cardwrite(fp, &cardtab[i]) == -1)
-				quit(cardperr, "cardwrite");
-			carddestr(&cardtab[i]);
-		}
-		fclose(fp);
+		saveback(0);
 	}
 	return 0;
 }
@@ -121,21 +137,49 @@ QUERY:
 		goto QUERY;
 	switch (in[0]) {
 	case 'y':
+		sigprocmask(SIG_BLOCK, &savesigset, &osigset);
 		if (setprev(card, now) == -1)
 			quit(cardperr, "setprev");
 		if (setnext(card, now + 2*diff) == -1)
 			quit(cardperr, "setprev");
+		sigprocmask(SIG_SETMASK, &osigset, NULL);
 		break;
 	case 'n':
+		sigprocmask(SIG_BLOCK, &savesigset, &osigset);
 		if (setprev(card, now) == -1)
 			quit(cardperr, "setprev");
 		if (setnext(card, now + day) == -1)
 			quit(cardperr, "setprev");
+		sigprocmask(SIG_SETMASK, &osigset, NULL);
 		break;
 	case 'c':
 		break;
 	}
 	putchar('\n');
+}
+
+static void saveback(int signo)
+{
+	FILE *fp;
+	int i;
+
+	sigprocmask(SIG_BLOCK, &savesigset, &osigset);
+	if (curfile) {
+		if (!(fp = fopen(curfile, "w")))
+			quit(perror, "fopen");
+		for (i = 0; i < ncard; i++) {
+			if (i && fputc('\n', fp) == EOF)
+				quit(perror, "fputc");
+			if (cardwrite(fp, &cardtab[i]) == -1)
+				quit(cardperr, "cardwrite");
+			carddestr(&cardtab[i]);
+		}
+		fclose(fp);
+		if (signo > 0)
+			exit(128 + signo);
+	}
+	curfile = NULL;
+	sigprocmask(SIG_SETMASK, &osigset, NULL);
 }
 
 static char *getfront(struct card *card)
@@ -170,7 +214,7 @@ static int setnext(struct card *card, time_t t)
 
 static int settime(struct card *card, char *key, time_t t)
 {
-	char buf[tmstrlen];
+	char buf[(sizeof iso8601 / sizeof *iso8601) * 8];
 
 	strftime(buf, sizeof buf, iso8601, localtime(&t));
 	return cardset(card, key, buf, 1);
@@ -189,4 +233,9 @@ static time_t gettime(struct card *card, char *key)
 		exit(1);
 	}
 	return mktime(&buf);
+}
+
+static void pversion(FILE *fp)
+{
+	fprintf(fp, "hardv %s\n", S(VERSION));
 }
