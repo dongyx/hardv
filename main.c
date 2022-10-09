@@ -195,14 +195,18 @@ static void recall(struct card *card, time_t now)
 	if ((diff = next - prev) < day)
 		diff = day;
 	printf("%s\n\n", getfront(card));
+	fflush(stdout);
 CHECK:
 	fputs("press <ENTER> to check the back\n", stdout);
+	fflush(stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "\n"))
 		goto CHECK;
 	printf("%s\n", getback(card));
+	fflush(stdout);
 QUERY:
 	fputs("\ndo you recall? (y/n/s)\n", stdout);
+	fflush(stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
 		goto QUERY;
