@@ -17,8 +17,11 @@ targets: $(targets)
 hardv: $(objs)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-%.o: %.c
+main.o: main.c version
 	$(CC) $(CFLAGS) -DVERSION="`cat version`" -o $@ -c $<
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 %.d: %.c
 	$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
