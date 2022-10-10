@@ -13,7 +13,9 @@
 
 static char *curfile;
 static struct card cardtab[MAXCARD];
-static int ncard;
+static int ncard, isexact;
+static void help(FILE *fp);
+static void pversion(FILE *fp);
 enum {
 	SIGLOCK_INIT,
 	SIGLOCK_LOCK,
@@ -23,33 +25,60 @@ static void siglock(int act);
 static void loadctab(char *path);
 static void schedule(time_t now);
 static void dumpctab(int signo);
-static void pversion(FILE *fp);
 
 main(int argc, char **argv)
 {
 	time_t now;
+	int ch;
 
 	now = time(NULL);
-	if (argc < 2) {
-		pversion(stderr);
+	while ((ch = getopt(argc, argv, "ehv")) != -1)
+		switch (ch) {
+		case 'e':
+			isexact = 1;
+			break;
+		case 'h':
+			help(stdout);
+			return 0;
+		case 'v':
+			pversion(stdout);
+			return 0;
+		case '?':
+		default:
+			help(stderr);
+			return 1;
+		}
+	if ((argv += optind, argc -= optind) == 0) {
+		help(stderr);
 		return 1;
 	}
-	if (!strcmp(argv[1], "-v")) {
-		pversion(stdout);
-		return 0;
-	}
 	siglock(SIGLOCK_INIT);
-	while (*++argv) {
+	while (*argv) {
 		loadctab(*argv);
 		schedule(now);
 		dumpctab(0);
+		argv++;
 	}
 	return 0;
+}
+
+static void help(FILE *fp)
+{
+	fputs("hardv [options] file [file ...]\n", fp);
+	fputs("\n", fp);
+	fputs("options\n", fp);
+	fputs("\n", fp);
+	fputs("-e	enable exact recall time\n", fp);
+	fputs("-h	print this help information\n", fp);
+	fputs("-v	print version and building information\n", fp);
 }
 
 static void pversion(FILE *fp)
 {
 	fprintf(fp, "hardv %s\n", S(VERSION));
+	fputc('\n', fp);
+	fprintf(fp, "BUFSIZ: %d\n", BUFSIZ);
+	fprintf(fp, "MAXCARD: %d\n", MAXCARD);
 }
 
 static void siglock(int act)
@@ -78,6 +107,7 @@ static void siglock(int act)
 
 static void validc(struct card *card);
 static int plancmp(int *i, int *j);
+static int isnow(struct card *card, time_t now);
 static void recall(struct card *card, time_t now);
 static char *getfront(struct card *card);
 static char *getback(struct card *card);
@@ -123,7 +153,7 @@ static void schedule(time_t now)
 	qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 	for (n = i = 0; i < ncard; i++) {
 		card = &cardtab[plan[i]];
-		if (getnext(card) <= time(0)) {
+		if (isnow(card, now)) {
 			if (n++)
 				putchar('\n');
 			recall(card, now);
@@ -181,6 +211,21 @@ static int plancmp(int *i, int *j)
 	if (ni > nj)
 		return 1;
 	return 0;
+}
+
+static int isnow(struct card *card, time_t now)
+{
+	struct tm today, theday;
+	time_t next;
+
+	next = getnext(card);
+	if (isexact)
+		return now >= next;
+	memcpy(&today, localtime(&now), sizeof today);
+	memcpy(&theday, localtime(&next), sizeof theday);
+	return today.tm_year >= theday.tm_year &&
+		today.tm_mon >= theday.tm_mon &&
+		today.tm_mday >= theday.tm_mday;
 }
 
 static void recall(struct card *card, time_t now)
