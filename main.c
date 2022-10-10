@@ -106,15 +106,6 @@ static void siglock(int act)
 }
 
 static void validc(struct card *card);
-static int plancmp(int *i, int *j);
-static int isnow(struct card *card, time_t now);
-static void recall(struct card *card, time_t now);
-static char *getfront(struct card *card);
-static char *getback(struct card *card);
-static time_t getprev(struct card *card);
-static time_t getnext(struct card *card);
-static int setprev(struct card *card, time_t t);
-static int setnext(struct card *card, time_t t);
 
 static void loadctab(char *path)
 {
@@ -142,6 +133,10 @@ static void loadctab(char *path)
 	fclose(fp);
 	siglock(SIGLOCK_UNLOCK);
 }
+
+static int plancmp(int *i, int *j);
+static int isnow(struct card *card, time_t now);
+static void recall(struct card *card, time_t now);
 
 static void schedule(time_t now)
 {
@@ -184,6 +179,13 @@ static void dumpctab(int signo)
 	}
 	siglock(SIGLOCK_UNLOCK);
 }
+
+static char *getfront(struct card *card);
+static char *getback(struct card *card);
+static time_t getprev(struct card *card);
+static time_t getnext(struct card *card);
+static int setprev(struct card *card, time_t t);
+static int setnext(struct card *card, time_t t);
 
 static void validc(struct card *card)
 {
@@ -247,10 +249,10 @@ CHECK:
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "\n"))
 		goto CHECK;
-	printf("%s\n", getback(card));
+	printf("%s\n\n", getback(card));
 	fflush(stdout);
 QUERY:
-	fputs("\ndo you recall? (y/n/s)\n", stdout);
+	fputs("do you recall? (y/n/s)\n", stdout);
 	fflush(stdout);
 	fgets(in, sizeof in, stdin);
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
