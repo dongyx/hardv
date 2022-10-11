@@ -11,27 +11,48 @@
 #define _S(x) #x
 #define S(x) _S(x)
 
-static char *curfile;
-static struct card cardtab[MAXCARD];
-static int ncard, isexact;
-static void help(FILE *fp);
-static void pversion(FILE *fp);
 enum {
 	SIGLOCK_INIT,
 	SIGLOCK_LOCK,
 	SIGLOCK_UNLOCK
 };
+
+static const char iso8601[] = "%Y-%m-%d %H:%M:%S %z";
+
+static char *curfile;
+static struct card cardtab[MAXCARD];
+static int ncard, isexact;
+
+static void help(FILE *fp);
+static void pversion(FILE *fp);
 static void siglock(int act);
 static void loadctab(char *path);
 static void schedule(time_t now);
 static void dumpctab(int signo);
+static void validc(struct card *card);
+static int plancmp(int *i, int *j);
+static int isnow(struct card *card, time_t now);
+static void recall(struct card *card, time_t now);
+static char *getfront(struct card *card);
+static char *getback(struct card *card);
+static time_t getprev(struct card *card);
+static time_t getnext(struct card *card);
+static int setprev(struct card *card, time_t t);
+static int setnext(struct card *card, time_t t);
+static time_t gettime(struct card *card, char *key);
+static int settime(struct card *card, char *key, time_t t);
+static time_t parsetm(char *s);
 
 main(int argc, char **argv)
 {
+	char *envnow;
 	time_t now;
 	int ch;
 
-	now = time(NULL);
+	if ((envnow = getenv("HARDV_NOW")))
+		now = parsetm(envnow);
+	else
+		now = time(NULL);
 	while ((ch = getopt(argc, argv, "ehv")) != -1)
 		switch (ch) {
 		case 'e':
@@ -105,8 +126,6 @@ static void siglock(int act)
 	}
 }
 
-static void validc(struct card *card);
-
 static void loadctab(char *path)
 {
 	struct card card;
@@ -133,10 +152,6 @@ static void loadctab(char *path)
 	fclose(fp);
 	siglock(SIGLOCK_UNLOCK);
 }
-
-static int plancmp(int *i, int *j);
-static int isnow(struct card *card, time_t now);
-static void recall(struct card *card, time_t now);
 
 static void schedule(time_t now)
 {
@@ -180,13 +195,6 @@ static void dumpctab(int signo)
 	siglock(SIGLOCK_UNLOCK);
 }
 
-static char *getfront(struct card *card);
-static char *getback(struct card *card);
-static time_t getprev(struct card *card);
-static time_t getnext(struct card *card);
-static int setprev(struct card *card, time_t t);
-static int setnext(struct card *card, time_t t);
-
 static void validc(struct card *card)
 {
 	char *msg;
@@ -212,6 +220,10 @@ static int plancmp(int *i, int *j)
 		return -1;
 	if (ni > nj)
 		return 1;
+	if (*i < *j)
+		return -1;
+	if (*i > *j)
+		return -1;
 	return 0;
 }
 
@@ -277,9 +289,6 @@ QUERY:
 	siglock(SIGLOCK_UNLOCK);
 }
 
-static time_t gettime(struct card *card, char *key);
-static int settime(struct card *card, char *key, time_t t);
-
 static char *getfront(struct card *card)
 {
 	return cardget(card, "FRONT");
@@ -310,8 +319,6 @@ static int setnext(struct card *card, time_t t)
 	return settime(card, "NEXT", t);
 }
 
-static const char iso8601[] = "%Y-%m-%d %H:%M:%S %z";
-
 static int settime(struct card *card, char *key, time_t t)
 {
 	char buf[(sizeof iso8601 / sizeof *iso8601) * 8];
@@ -322,11 +329,17 @@ static int settime(struct card *card, char *key, time_t t)
 
 static time_t gettime(struct card *card, char *key)
 {
-	const char *s;
-	struct tm buf;
+	char *s;
 
 	if (!(s = cardget(card, key)))
 		return 0;
+	return parsetm(s);
+}
+
+static time_t parsetm(char *s)
+{
+	struct tm buf;
+
 	memset(&buf, 0, sizeof buf);
 	if (!strptime(s, iso8601, &buf)) {
 		fputs("invalid time format\n", stderr);

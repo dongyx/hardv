@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+for in in *.in; do
+	ans=${in%.in}.ans
+	act=${in%.in}.act
+	arg=${in%.in}.arg
+	now=${in%.in}.now
+	cp $in out
+	<$act HARDV_NOW="`cat $now`" hardv `cat $arg` out \
+		>/dev/null
+	diff $ans out
+done

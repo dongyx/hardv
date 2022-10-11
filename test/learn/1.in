@@ -1,0 +1,47 @@
+PREV	2022-10-10 16:00:00 +0800
+FRONT	The famous C program from a famous book:
+	hello world
+	
+		--K&R
+NEXT	2022-10-11 22:00:00 +0800
+BACK	#include <stdio.h>
+	
+	main()
+	{
+		printf("hello, world\n");
+	}
+
+NEXT	2023-08-11 12:00:00 +0800
+FRONT	hex(32768) = ?
+BACK	0x8000
+
+FRONT	the reliable idiom of write()
+	
+	/* int rwrite(int fd, void *buf, int n) */
+BACK	int rwrite(int fd, void *buf, int n)
+	{
+		int left;
+		char *bufp;
+		int nw;
+	
+		left = n, bufp = buf;
+		while (left > 0) {
+			if ((nw = write(fd, bufp, left)) == -1) {
+				if (errno == EINTR)
+					nw = 0;
+				else
+					return -1;
+			}
+			left -= nw, bufp += nw;
+		}
+		return n
+	}
+
+PREV	2008-03-02 13:27:09 +0800
+FRONT	hello
+BACK	hi
+
+PREV	2013-09-10 00:12:32 +0800
+NEXT	2023-07-24 17:51:12 +0800
+FRONT	hex(128) = ?
+BACK	0x80

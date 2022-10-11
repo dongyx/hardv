@@ -1,0 +1,35 @@
+FRONT	The famous C program from a famous book:
+	hello world
+	
+		--K&R
+BACK	#include <stdio.h>
+	
+	main()
+	{
+		printf("hello, world\n");
+	}
+
+FRONT	hex(32768) = ?
+BACK	0x8000
+
+FRONT	the reliable idiom of write()
+	
+	/* int rwrite(int fd, void *buf, int n) */
+BACK	int rwrite(int fd, void *buf, int n)
+	{
+		int left;
+		char *bufp;
+		int nw;
+	
+		left = n, bufp = buf;
+		while (left > 0) {
+			if ((nw = write(fd, bufp, left)) == -1) {
+				if (errno == EINTR)
+					nw = 0;
+				else
+					return -1;
+			}
+			left -= nw, bufp += nw;
+		}
+		return n
+	}

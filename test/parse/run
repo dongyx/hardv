@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+for in in *.in; do
+	cp $in out
+	ans="${in%.in}.ans"
+	while :; do
+		echo
+		echo s
+	done | hardv out >/dev/null
+	diff -u $ans out
+done

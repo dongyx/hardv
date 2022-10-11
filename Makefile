@@ -1,4 +1,4 @@
-.PHONY: targets clean install
+.PHONY: targets clean install test
 
 CC = cc
 CFLAGS = -std=c89 -D_POSIX_C_SOURCE=200809L -pedantic
@@ -26,9 +26,30 @@ main.o: main.c version
 %.d: %.c
 	$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
 
-clean:
-	rm -rf $(targets) $(deps) $(objs)
+test: $(targets)
+	@set -e; \
+	PATH="`pwd`:$$PATH"; \
+	for i in test/*; do \
+		cd $$i;	\
+		echo running test $$i...; \
+		./run; \
+		cd ../..; \
+	done; \
+	echo all tests passed;
+	@for i in test/*; do \
+		cd $$i;	\
+		./clean; \
+		cd ../..; \
+	done
 
+clean:
+	@rm -rf $(targets) $(deps) $(objs)
+	@for i in test/*; do \
+		cd $$i;	\
+		./clean; \
+		cd ../..; \
+	done
+		
 install: $(targets)
 	$(INSTALL) -d $(bindir)
 	$(INSTALL) hardv $(bindir)
