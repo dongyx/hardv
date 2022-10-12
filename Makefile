@@ -5,10 +5,12 @@ CFLAGS = -std=c89 -D_POSIX_C_SOURCE=200809L -pedantic
 INSTALL = install
 prefix = /usr/local
 bindir = $(prefix)/bin
+datarootdir = $(prefix)/share
+mandir = $(datarootdir)/man
 src = $(wildcard *.c)
 deps = $(src:.c=.d)
 objs = $(src:.c=.o)
-targets = hardv
+targets = hardv hardv.1
 
 targets: $(targets)
 
@@ -25,6 +27,18 @@ main.o: main.c version
 
 %.d: %.c
 	$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
+
+hardv.1: hardv.man1
+	@echo building manpage...
+	@set -e; \
+	cp $< $@; \
+	printf '\n.SH VERSION\n\n' >>$@; \
+	printf '.nf\n' >>$@; \
+	printf 'hardv ' >>$@; \
+	cat version >>$@; \
+	printf '\n' >>$@; \
+	cat LICENSE >>$@; \
+	printf '.fi\n' >>$@;
 
 test: $(targets)
 	@set -e; \
@@ -53,3 +67,5 @@ clean:
 install: $(targets)
 	$(INSTALL) -d $(bindir)
 	$(INSTALL) hardv $(bindir)
+	$(INSTALL) -d $(mandir)/man1
+	$(INSTALL) hardv.1 $(mandir)/man1

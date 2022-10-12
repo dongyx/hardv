@@ -1,0 +1,94 @@
+.ta T 8
+.TH hardv 1
+
+.SH NAME
+
+hardv - flashcards quiz
+
+.SH SYNOPSIS
+
+\fBhardv\fR [\fIoptions\fR] \fIfile\fR [\fIfile\fR ...]
+
+.SH DESCRIPTION
+
+
+An input \fIfile\fR is a card set contains (flash)cards.
+
+An example of an input file (with tab size 8):
+
+.RS
+.nf
+FRONT	hex(128) = ?
+BACK	0x80
+
+FRONT	the most famous C program from K&R, second edition
+BACK	#include <stdio.h>
+	
+	main()
+	{
+		printf("hello world\n");
+	}
+
+FRONT	hex(32768) = ?
+BACK	0x8000
+.fi
+.RE
+
+A card is a key-value structure contains at least two fields \fBFRONT\fR
+and \fBBACK\fR.
+The key and the value are separated by a tab character.
+If the value has multiple lines, each successive line must start with a
+tab, except blank lines.
+
+Cards are separated by blank lines.
+
+After a card is tested with \fBhardv\fR, two fields \fBPREV\fI and
+\fBNEXT\fR are updated or inserted to indicate the previous quiz time
+and the next scheduled quiz time.
+The two fields are date time strings in the format like the following.
+
+.RS
+.nf
+1983-02-25 15:31:06 -0500
+.ni
+.RE
+
+\fBhardv\fR reads input \fIfile\fRs and filters out cards which are
+scheduled to test earlier than or within today
+(see the \fB-e\fR option).
+The user checks the \fBBACK\fR field and selects whether it can be
+recalled.
+
+There are three choices for a card.
+
+.TP
+1. \fBy\fR
+the user can recall the card;
+the next quiz time for this card will be doubly scheduled
+
+.TP
+2. \fBn\fR
+the user can not recall the card;
+the next quiz time for this card will be scheduled at 24 hours later
+
+.TP
+3. \fBs\fR
+skip the card;
+nothing will update of the card
+
+.SH OPTIONS
+
+.TP
+\fB-e
+test card only if the start time of the quiz is not earlier
+than the exact scheduled quiz time of the card;
+if this option is not specified, any card whose scheduled quiz time
+is earlier than or within today will be tested.
+
+.TP
+\fB-h
+print a brief help message
+
+.TP
+\fB-v
+print the version and building information

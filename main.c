@@ -89,7 +89,7 @@ static void help(FILE *fp)
 	fputs("\n", fp);
 	fputs("options\n", fp);
 	fputs("\n", fp);
-	fputs("-e	enable exact recall time\n", fp);
+	fputs("-e	enable exact quiz time\n", fp);
 	fputs("-h	print this help information\n", fp);
 	fputs("-v	print version and building information\n", fp);
 }
