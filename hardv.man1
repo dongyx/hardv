@@ -7,7 +7,10 @@ hardv - flashcards quiz
 
 .SH SYNOPSIS
 
+.nf
 \fBhardv\fR [\fIoptions\fR] \fIfile\fR [\fIfile\fR ...]
+\fBhardv\fR \fB-h\fR|\fB-v\fR
+.fi
 
 .SH DESCRIPTION
 
@@ -26,7 +29,7 @@ BACK	#include <stdio.h>
 	
 	main()
 	{
-		printf("hello world\n");
+		printf("hello world\\n");
 	}
 
 FRONT	hex(32768) = ?
@@ -40,17 +43,23 @@ The key and the value are separated by a tab character.
 If the value has multiple lines, each successive line must start with a
 tab, except blank lines.
 
-Cards are separated by blank lines.
+The \fBFRONT\fR field represents the front side of a physical card.
+It's usually a question or a clue.
+The \fBBACK\fR field represents the back side of a physical card.
+It's usually the answer or information regarding the \fBFRONT\fR field.
 
-After a card is tested with \fBhardv\fR, two fields \fBPREV\fI and
+Cards are separated by blank lines.
+Trailing blank lines of a card are ignored.
+
+After a card is tested with \fBhardv\fR, two fields \fBPREV\fR and
 \fBNEXT\fR are updated or inserted to indicate the previous quiz time
 and the next scheduled quiz time.
 The two fields are date time strings in the format like the following.
 
 .RS
 .nf
-1983-02-25 15:31:06 -0500
-.ni
+1993-02-25 15:31:06 -0500
+.fi
 .RE
 
 \fBhardv\fR reads input \fIfile\fRs and filters out cards which are
@@ -74,20 +83,20 @@ the next quiz time for this card will be scheduled at 24 hours later
 .TP
 3. \fBs\fR
 skip the card;
-nothing will update of the card
+nothing will be updated
 
 .SH OPTIONS
 
 .TP
 \fB-e
-test card only if the start time of the quiz is not earlier
+test a card only if the start time of the quiz is not earlier
 than the exact scheduled quiz time of the card;
 if this option is not specified, any card whose scheduled quiz time
 is earlier than or within today will be tested.
 
 .TP
 \fB-h
-print a brief help message
+print the brief help message
 
 .TP
 \fB-v

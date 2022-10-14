@@ -8,8 +8,6 @@
 #include "card.h"
 #define MAXCARD 65536
 #define quit(f, s) do { f(s); exit(1); } while (0)
-#define _S(x) #x
-#define S(x) _S(x)
 
 enum {
 	SIGLOCK_INIT,
@@ -96,7 +94,8 @@ static void help(FILE *fp)
 
 static void pversion(FILE *fp)
 {
-	fprintf(fp, "hardv %s\n", S(VERSION));
+	fprintf(fp, "hardv %s\n", VERSION);
+	fprintf(fp, "%s\n", COPYRT);
 	fputc('\n', fp);
 	fprintf(fp, "BUFSIZ: %d\n", BUFSIZ);
 	fprintf(fp, "MAXCARD: %d\n", MAXCARD);

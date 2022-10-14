@@ -19,8 +19,11 @@ targets: $(targets)
 hardv: $(objs)
 	$(CC) $(LDFLAGS) -o $@ $^
 
-main.o: main.c version
-	$(CC) $(CFLAGS) -DVERSION="`cat version`" -o $@ -c $<
+main.o: main.c version LICENSE
+	$(CC) $(CFLAGS) \
+		-DVERSION="\"`cat version`\"" \
+		-DCOPYRT="\"`grep -i 'copyright (c)' LICENSE`\"" \
+		-o $@ -c $<
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -36,8 +39,7 @@ hardv.1: hardv.man1
 	printf '.nf\n' >>$@; \
 	printf 'hardv ' >>$@; \
 	cat version >>$@; \
-	printf '\n' >>$@; \
-	cat LICENSE >>$@; \
+	grep -i 'copyright (c)' LICENSE >>$@; \
 	printf '.fi\n' >>$@;
 
 test: $(targets)
