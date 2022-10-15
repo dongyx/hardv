@@ -1,3 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
 FRONT	The famous C program from a famous book:
 	hello world
 	
@@ -9,8 +20,15 @@ BACK	#include <stdio.h>
 		printf("hello, world\n");
 	}
 
+
+
+
 FRONT	hex(32768) = ?
 BACK	0x8000
+
+
+
+
 
 FRONT	the reliable idiom of write()
 	
@@ -33,3 +51,11 @@ BACK	int rwrite(int fd, void *buf, int n)
 		}
 		return n
 	}
+
+
+
+
+
+
+
+

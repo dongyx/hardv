@@ -1,34 +1,28 @@
 #ifndef CARD_H
-#define CARD_H
+#define	CARD_H
 
-#include <stdio.h>
 #include <time.h>
+#define KEYSZ 8
+#define VALSZ 1024
+#define NFIELD 8
 
-enum {
-	CARD_ESYSL,
-	CARD_ELINE,
-	CARD_ESIZE,
-	CARD_ENOKEY
-};
-
-struct attr {
-	char *key;
-	char *val;
-	struct attr *next;
+struct field {
+	char key[KEYSZ];
+	char val[VALSZ];
 };
 
 struct card {
-	struct attr *attr;
+	int nfield;
+	struct field field[NFIELD];
 };
 
-extern int carderr;
-
-int cardread(FILE *fp, struct card *card);
-int cardwrite(FILE *fp, struct card *card);
-void carddestr(struct card *card);
-char *cardget(struct card *card, char *key);
-int cardset(struct card *card, char *key, char *val, int creat);
-char *cardestr(void);
-void cardperr(char *s);
+char *getfront(struct card *card);
+char *getback(struct card *card);
+time_t getprev(struct card *card);
+time_t getnext(struct card *card);
+void setprev(struct card *card, time_t prev);
+void setnext(struct card *card, time_t next);
+void validcard(struct card *card, char *header);
+time_t parsetm(char *s);
 
 #endif

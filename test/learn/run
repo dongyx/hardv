@@ -2,12 +2,12 @@
 
 set -e
 for in in *.in; do
+	out=${in%.in}.out
 	ans=${in%.in}.ans
 	act=${in%.in}.act
 	arg=${in%.in}.arg
 	now=${in%.in}.now
-	cp $in out
-	<$act HARDV_NOW="`cat $now`" hardv `cat $arg` out \
-		>/dev/null
-	diff $ans out
+	cp $in $out
+	<$act HARDV_NOW="`cat $now`" hardv `cat $arg` $out >/dev/null
+	diff -u $ans $out
 done

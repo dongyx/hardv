@@ -2,11 +2,12 @@
 
 set -e
 for in in *.in; do
-	cp $in out
+	out="${in%.in}.out"
 	ans="${in%.in}.ans"
+	cp $in $out
 	while :; do
 		echo
 		echo s
-	done | hardv out >/dev/null
-	diff -u $ans out
+	done | hardv $out >/dev/null
+	diff -u $ans $out
 done
