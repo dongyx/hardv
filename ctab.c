@@ -15,7 +15,7 @@ int loadctab(char *filename, struct card *cards, int maxn)
 		perror(filename);
 		exit(1);
 	}
-	while (n < maxn && readcard(fp, filename, &cards[n]) > 0)
+	while (n < maxn && readcard(fp, &cards[n], filename) > 0)
 		n++;
 	if (!feof(fp)) {
 		fprintf(stderr, "an input file can't contain more than "
@@ -40,7 +40,7 @@ void dumpctab(char *filename, struct card *cards, int n)
 			perror(filename);
 			exit(1);
 		}
-		writecard(fp, filename, &cards[i]);
+		writecard(fp, &cards[i], filename);
 	}
 	fclose(fp);
 	siglock(SIGLOCK_UNLOCK);

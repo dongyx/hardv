@@ -8,7 +8,7 @@
 	if (!field) { \
 		fprintf(stderr, "%s, line %d: " \
 			"field key is expected\n", \
-			filename, lineno); \
+			ehaed, lineno); \
 		exit(1); \
 	} \
 } while (0)
@@ -18,7 +18,7 @@
 		fprintf(stderr, "%s, line %d: " \
 			"field value must be less than" \
 			" %d bytes\n", \
-			filename, lineno, VALSZ); \
+			ehaed, lineno, VALSZ); \
 		exit(1); \
 	} \
 } while (0)
@@ -30,7 +30,7 @@
 
 int lineno;
 
-int readcard(FILE *fp, char *filename, struct card *card)
+int readcard(FILE *fp, struct card *card, char *ehaed)
 {
 	char line[LINESZ], *val;
 	int n, sep, nblank, ch;
@@ -48,7 +48,7 @@ int readcard(FILE *fp, char *filename, struct card *card)
 		if (line[n - 1] != '\n' && !feof(fp)) {
 			fprintf(stderr, "%s, line %d: "
 				"line must be less than %d bytes\n",
-				filename, lineno, LINESZ);
+				ehaed, lineno, LINESZ);
 			exit(1);
 		}
 		if (line[0] == '\t') {	/* successive value line */
@@ -60,7 +60,7 @@ int readcard(FILE *fp, char *filename, struct card *card)
 				fprintf(stderr, "%s, line %d: "
 				"fields of a card can't exceed %d"
 				"\n",
-				filename, lineno, NFIELD);
+				ehaed, lineno, NFIELD);
 				exit(1);
 			}
 			TRIM();
@@ -70,14 +70,14 @@ int readcard(FILE *fp, char *filename, struct card *card)
 			if (!line[sep]) {
 				fprintf(stderr, "%s, line %d: "
 					"field value is expected\n",
-					filename, lineno);
+					ehaed, lineno);
 				exit(1);
 			}
 			line[sep++] = '\0';
 			if (sep > KEYSZ) {
 				fprintf(stderr, "%s, line %d: "
 				"field key must be less than %d\n",
-				filename, lineno, KEYSZ);
+				ehaed, lineno, KEYSZ);
 				exit(1);
 			}
 			strcpy(field->key, line);
@@ -85,7 +85,7 @@ int readcard(FILE *fp, char *filename, struct card *card)
 				if (!strcmp(field->key, i->key)) {
 					fprintf(stderr, "%s, line %d: "
 					"duplicated key: %s\n",
-					filename, lineno, i->key);
+					ehaed, lineno, i->key);
 					exit(1);
 				}
 			CHK_VALSZ(n - sep);
@@ -100,7 +100,7 @@ int readcard(FILE *fp, char *filename, struct card *card)
 				fprintf(stderr, "%s, line %d: "
 					"number of continuous blank "
 					"lines can't exceed %d\n",
-					filename, lineno, NBLANK);
+					ehaed, lineno, NBLANK);
 				exit(1);
 			}
 			if (ch != EOF)
@@ -120,34 +120,34 @@ int readcard(FILE *fp, char *filename, struct card *card)
 	}
 	if (card->nfield) {
 		TRIM();
-		validcard(card, filename);
+		validcard(card, ehaed);
 	}
 	return card->nfield;
 }
 
-void writecard(FILE *fp, char *filename, struct card *card)
+void writecard(FILE *fp, struct card *card, char *ehaed)
 {
 	char *j;
 	int i;
 
 	for (i = 0; i < card->nfield; i++) {
 		if (fprintf(fp, "%s\t", card->field[i].key) < 0) {
-			perror(filename);
+			perror(ehaed);
 			exit(1);
 		}
 		for (j = card->field[i].val; *j; j++) {
 			if (j != card->field[i].val && j[-1] == '\n')
 				if (fputc('\t', fp) == EOF) {
-					perror(filename);
+					perror(ehaed);
 					exit(1);
 				}
 			if (fputc(*j, fp) == EOF) {
-				perror(filename);
+				perror(ehaed);
 				exit(1);
 			}
 		}
 		if (fputc('\n', fp) == EOF) {
-			perror(filename);
+			perror(ehaed);
 			exit(1);
 		}
 	}

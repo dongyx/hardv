@@ -7,7 +7,7 @@
 
 extern int lineno;
 
-int readcard(FILE *fp, char *filename, struct card *card);
-void writecard(FILE *fp, char *filename, struct card *card);
+int readcard(FILE *fp, struct card *card, char *ehaed);
+void writecard(FILE *fp, struct card *card, char *ehaed);
 
 #endif
