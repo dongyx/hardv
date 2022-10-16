@@ -3,9 +3,10 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <stdio.h>
+#include "apperr.h"
 #include "siglock.h"
 
-void siglock(int act, ...)
+int siglock(int act, ...)
 {
 	static sigset_t set, oset;
 	va_list ap;
@@ -28,7 +29,8 @@ void siglock(int act, ...)
 		sigprocmask(SIG_SETMASK, &oset, NULL);
 		break;
 	default:
-		fprintf(stderr, "invalid action of siglock: %d\n", act);
-		exit(1);
+		apperr = AEINVAL;
+		return -1;
 	}
+	return 0;
 }

@@ -4,6 +4,7 @@
 #include <time.h>
 #include "card.h"
 #include "ctab.h"
+#include "parse.h"
 #include "learn.h"
 #define NCARD 65536
 
@@ -13,10 +14,10 @@ static struct card cardtab[NCARD];
 static int ncard;
 
 static int isnow(struct card *card, time_t now);
-static void recall(struct card *card, time_t now);
+static int recall(struct card *card, time_t now);
 static int plancmp(int *i, int *j);
 
-void learn(char *filename, int now, struct learnopt *opt)
+int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
@@ -24,13 +25,17 @@ void learn(char *filename, int now, struct learnopt *opt)
 
 	curfile = filename;
 	learnopt = opt;
-	ncard = loadctab(curfile, cardtab, NCARD);
+	lineno = 0;
+	if ((ncard = loadctab(curfile, cardtab, NCARD)) == -1)
+		return -1;
 	for (i = 0; i < ncard; i++)
 		plan[i] = i;
 	qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 	for (i = 0; i < ncard; i++)
 		if (isnow(&cardtab[plan[i]], now))
-			recall(&cardtab[plan[i]], now);
+			if (recall(&cardtab[plan[i]], now) == -1)
+				return -1;
+	return 0;
 }
 
 static int isnow(struct card *card, time_t now)
@@ -38,7 +43,7 @@ static int isnow(struct card *card, time_t now)
 	struct tm today, theday;
 	time_t next;
 
-	next = getnext(card);
+	getnext(card, &next);
 	if (learnopt->exact)
 		return now >= next;
 	memcpy(&today, localtime(&now), sizeof today);
@@ -48,15 +53,16 @@ static int isnow(struct card *card, time_t now)
 		today.tm_mday >= theday.tm_mday;
 }
 
-static void recall(struct card *card, time_t now)
+static int recall(struct card *card, time_t now)
 {
 	const time_t day = 60*60*24;
 	char in[BUFSIZ];
 	time_t diff, prev, next;
 
-	if ((prev = getprev(card)) == 0)
+	getprev(card, &prev);
+	if (prev == 0)
 		prev = now;	
-	next = getnext(card);
+	getnext(card, &next);
 	if ((diff = next - prev) < day)
 		diff = day;
 	printf("%s\n\n", getfront(card));
@@ -77,26 +83,33 @@ QUERY:
 		goto QUERY;
 	switch (in[0]) {
 	case 'y':
-		setprev(card, now);
-		setnext(card, now + 2*diff);
-		dumpctab(curfile, cardtab, ncard);
+		if (setprev(card, now) == -1)
+			return -1;
+		if (setnext(card, now + 2*diff) == -1)
+			return -1;
+		if (dumpctab(curfile, cardtab, ncard) == -1)
+			return -1;
 		break;
 	case 'n':
-		setprev(card, now);
-		setnext(card, now + day);
-		dumpctab(curfile, cardtab, ncard);
+		if (setprev(card, now) == -1)
+			return -1;
+		if (setnext(card, now + day) == -1)
+			return -1;
+		if (dumpctab(curfile, cardtab, ncard) == -1)
+			return -1;
 		break;
 	case 's':
 		break;
 	}
+	return 0;
 }
 
 static int plancmp(int *i, int *j)
 {
 	time_t ni, nj;
 
-	ni = getnext(&cardtab[*i]);
-	nj = getnext(&cardtab[*j]);
+	getnext(&cardtab[*i], &ni);
+	getnext(&cardtab[*j], &nj);
 	if (ni < nj)
 		return -1;
 	if (ni > nj)

@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <time.h>
 #include "siglock.h"
+#include "apperr.h"
+#include "parse.h"
 #include "learn.h"
 #include "card.h"
 
@@ -41,12 +43,25 @@ main(int argc, char **argv)
 		help(stderr);
 		return 1;
 	}
-	if ((envnow = getenv("HARDV_NOW")))
-		now = parsetm(envnow);
-	else
+	if ((envnow = getenv("HARDV_NOW"))) {
+		if (parsetm(envnow, &now) == -1) {
+			aeprint(envnow);
+			return 1;
+		}
+	} else
 		now = time(NULL);
-	while (*argv)
-		learn(*argv++, now, &opt);
+	while (*argv) {
+		if (learn(*argv, now, &opt) == -1) {
+			if (inparse)
+				fprintf(stderr,
+					"%s, line %d: %s\n",
+					*argv, lineno, aestr());
+			else
+				aeprint(*argv);
+			return 1;
+		}
+		argv++;
+	}
 	return 0;
 }
 

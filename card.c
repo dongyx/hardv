@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+#include "apperr.h"
 #include "card.h"
 #define TIMEFMT "%Y-%m-%d %H:%M:%S %z"
 #define FRONT "FRONT"
@@ -11,8 +12,8 @@
 #define PREV "PREV"
 
 static char *getfield(struct card *card, char *key);
-static time_t gettime(struct card *card, char *key);
-static void settime(struct card *card, char *key, time_t t);
+static int gettime(struct card *card, char *key, time_t *tp);
+static int settime(struct card *card, char *key, time_t t);
 
 char *getfront(struct card *card)
 {
@@ -25,46 +26,43 @@ char *getback(struct card *card)
 	return getfield(card, BACK);
 }
 
-time_t getprev(struct card *card)
+int getprev(struct card *card, time_t *tp)
 {
-	return gettime(card, PREV);
+	return gettime(card, PREV, tp);
 }
 
-time_t getnext(struct card *card)
+int getnext(struct card *card, time_t *tp)
 {
-
-	return gettime(card, NEXT);
+	return gettime(card, NEXT, tp);
 }
 
-void setprev(struct card *card, time_t prev)
+int setprev(struct card *card, time_t prev)
 {
-	settime(card, PREV, prev);
+	return settime(card, PREV, prev);
 }
 
-void setnext(struct card *card, time_t next)
+int setnext(struct card *card, time_t next)
 {
-	settime(card, NEXT, next);
+	return settime(card, NEXT, next);
 }
 
-void validcard(struct card *card, char *header)
+int validcard(struct card *card)
 {
-	int prev, next;
+	time_t prev, next;
+	int n;
 
-	getprev(card);
-	getnext(card);
+	if (getprev(card, &prev) == -1 || getnext(card, &next) == -1)
+		return -1;
 	if (!getfront(card) || !getback(card)) {
-		fprintf(stderr, "%s: the card must contain "
-		"the FRONT and BACK fields\n", header);
-		exit(1);
+		apperr = AENOFIELD;
+		return -1;
 	}
-	prev = !!getfield(card, PREV);
-	next = !!getfield(card, NEXT);
-	if (card->nfield - prev - next > NFIELD - 2) {
-		fprintf(stderr, "%s: "
-			"number of fields except PREV and NEXT must be"
-			" less than %d\n", header, NFIELD - 2);
-		exit(1);
+	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
+	if (card->nfield - n > NFIELD - 2) {
+		apperr = AENFIELD;
+		return -1;
 	}
+	return 0;
 }
 
 static char *getfield(struct card *card, char *key)
@@ -77,36 +75,49 @@ static char *getfield(struct card *card, char *key)
 	return NULL;
 }
 
-static time_t gettime(struct card *card, char *key)
+static int gettime(struct card *card, char *key, time_t *tp)
 {
 	struct tm buf;
 	char *val;
 
-	if (!(val = getfield(card, key)))
+	if (!(val = getfield(card, key))) {
+		*tp = 0;
 		return 0;
-	return parsetm(val);
+	}
+	return parsetm(val, tp);
 }
 
-static void settime(struct card *card, char *key, time_t t)
+static int settime(struct card *card, char *key, time_t t)
 {
 	int i;
 
 	for (i = 0; i < card->nfield; i++)
 		if (!strcmp(card->field[i].key, key))
 			break;
-	if (i == card->nfield)
+	if (i == card->nfield) {
+		if (strlen(key) >= KEYSZ) {
+			apperr = AEKEYSZ;
+			return -1;
+		}
 		strcpy(card->field[card->nfield++].key, key);
-	strftime(card->field[i].val, VALSZ, TIMEFMT, localtime(&t)); 
+	}
+	if (!strftime(card->field[i].val, VALSZ, TIMEFMT,
+		localtime(&t))) {
+		apperr = AEVALSZ;
+		return -1;
+	}
+	return 0;
 }
 
-time_t parsetm(char *s)
+int parsetm(char *s, time_t *tp)
 {
 	struct tm buf;
 
 	memset(&buf, 0, sizeof buf);
 	if (!strptime(s, TIMEFMT, &buf)) {
-		fprintf(stderr, "invalid time format: %s\n", s);
-		exit(1);
+		apperr = AETIMEF;
+		return -1;
 	}
-	return mktime(&buf);
+	*tp = mktime(&buf);
+	return 0;
 }

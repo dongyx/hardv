@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "apperr.h"
 #include "card.h"
 #include "parse.h"
 #include "siglock.h"
@@ -8,40 +9,46 @@
 int loadctab(char *filename, struct card *cards, int maxn)
 {
 	FILE *fp;
-	int n;
+	int n, nfield;
 
-	n = 0;
 	if (!(fp = fopen(filename, "r"))) {
-		perror(filename);
-		exit(1);
+		apperr = AESYS;
+		return -1;
 	}
-	while (n < maxn && readcard(fp, &cards[n], filename) > 0)
+	n = 0;
+	while (n < maxn && (nfield = readcard(fp, &cards[n])) > 0)
 		n++;
+	if (nfield == -1)
+		return -1;
 	if (!feof(fp)) {
-		fprintf(stderr, "an input file can't contain more than "
-			"%d cards\n", maxn);
-		exit(1);
+		apperr = AENCARD;
+		return -1;
 	}
 	return n;
 }
 
-void dumpctab(char *filename, struct card *cards, int n)
+int dumpctab(char *filename, struct card *cards, int n)
 {
 	FILE *fp;
 	int i;
 
 	siglock(SIGLOCK_LOCK);
 	if (!(fp = fopen(filename, "w"))) {
-		perror(filename);
-		exit(1);
+		apperr = AESYS;
+		return -1;
 	}
 	for (i = 0; i < n; i++) {
 		if (i && fputc('\n', fp) == EOF) {
-			perror(filename);
-			exit(1);
+			apperr = AESYS;
+			return -1;
 		}
-		writecard(fp, &cards[i], filename);
+		if (writecard(fp, &cards[i]) == -1)
+			return -1;
 	}
-	fclose(fp);
+	if (fclose(fp) == -1) {
+		apperr = AESYS;
+		return -1;
+	}
 	siglock(SIGLOCK_UNLOCK);
+	return 0;
 }

@@ -7,6 +7,6 @@ enum {
 	SIGLOCK_UNLOCK
 };
 
-void siglock(int act, ...);
+int siglock(int act, ...);
 
 #endif

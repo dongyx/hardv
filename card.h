@@ -18,11 +18,11 @@ struct card {
 
 char *getfront(struct card *card);
 char *getback(struct card *card);
-time_t getprev(struct card *card);
-time_t getnext(struct card *card);
-void setprev(struct card *card, time_t prev);
-void setnext(struct card *card, time_t next);
-void validcard(struct card *card, char *header);
-time_t parsetm(char *s);
+int getprev(struct card *card, time_t *tp);
+int getnext(struct card *card, time_t *tp);
+int setprev(struct card *card, time_t prev);
+int setnext(struct card *card, time_t next);
+int validcard(struct card *card);
+int parsetm(char *s, time_t *tp);
 
 #endif

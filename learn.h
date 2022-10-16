@@ -7,6 +7,6 @@ struct learnopt {
 	int exact;
 };
 
-void learn(char *filename, int now, struct learnopt *opt);
+int learn(char *filename, int now, struct learnopt *opt);
 
 #endif
