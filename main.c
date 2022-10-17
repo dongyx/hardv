@@ -80,4 +80,11 @@ static void pversion(FILE *fp)
 {
 	fprintf(fp, "hardv %s\n", VERSION);
 	fprintf(fp, "%s\n", COPYRT);
+	fputc('\n', fp);
+	fprintf(fp, "NCARD:	%d\n", NCARD);
+	fprintf(fp, "NFIELD:	%d\n", NFIELD);
+	fprintf(fp, "NBLANK:	%d\n", NBLANK);
+	fprintf(fp, "LINESZ:	%d\n", LINESZ);
+	fprintf(fp, "KEYSZ:	%d\n", KEYSZ);
+	fprintf(fp, "VALSZ:	%d\n", VALSZ);
 }

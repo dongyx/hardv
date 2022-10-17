@@ -6,7 +6,6 @@
 #include "ctab.h"
 #include "parse.h"
 #include "learn.h"
-#define NCARD 65536
 
 static struct learnopt *learnopt;
 static char *curfile;

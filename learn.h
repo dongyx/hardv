@@ -2,6 +2,7 @@
 #define LEARN_H
 
 #include "card.h"
+#define NCARD 65536
 
 struct learnopt {
 	int exact;
