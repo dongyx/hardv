@@ -2,12 +2,13 @@
 #define APPERR_H
 
 extern int apperr;
+extern int cardno, lineno;
 
 char *aestr(void);
 void aeprint(char *head);
 
 enum {
-	AESYS,	/* check errno */
+	AESYS,	/* system error */
 	AENFIELD,	/* too many fields */
 	AEMFIELD,	/* mandatory field not found */
 	AETIMEF,	/* invalid time format */

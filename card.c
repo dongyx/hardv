@@ -89,6 +89,7 @@ static int gettime(struct card *card, char *key, time_t *tp)
 
 static int settime(struct card *card, char *key, time_t t)
 {
+	struct tm *lctime;
 	int i;
 
 	for (i = 0; i < card->nfield; i++)
@@ -101,8 +102,11 @@ static int settime(struct card *card, char *key, time_t t)
 		}
 		strcpy(card->field[card->nfield++].key, key);
 	}
-	if (!strftime(card->field[i].val, VALSZ, TIMEFMT,
-		localtime(&t))) {
+	if (!(lctime = localtime(&t))) {
+		apperr = AESYS;
+		return -1;
+	}
+	if (!strftime(card->field[i].val, VALSZ, TIMEFMT, lctime)) {
 		apperr = AEVALSZ;
 		return -1;
 	}
