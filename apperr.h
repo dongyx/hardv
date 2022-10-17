@@ -9,7 +9,7 @@ void aeprint(char *head);
 enum {
 	AESYS,	/* check errno */
 	AENFIELD,	/* too many fields */
-	AENOFIELD,	/* required fields not found */
+	AEMFIELD,	/* mandatory field not found */
 	AETIMEF,	/* invalid time format */
 	AEKEYSZ,	/* field key too large */
 	AEVALSZ,	/* feild val too large */

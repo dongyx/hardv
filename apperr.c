@@ -10,7 +10,7 @@ char *aestr(void)
 	static char *msg[] = {
 		NULL,
 		"too many fields",
-		"required fields not found",
+		"mandaroty field not found",
 		"invalid time format",
 		"field key too large",
 		"feild value too large",

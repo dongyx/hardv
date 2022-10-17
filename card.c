@@ -54,7 +54,7 @@ int validcard(struct card *card)
 	if (getprev(card, &prev) == -1 || getnext(card, &next) == -1)
 		return -1;
 	if (!getfront(card) || !getback(card)) {
-		apperr = AENOFIELD;
+		apperr = AEMFIELD;
 		return -1;
 	}
 	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
