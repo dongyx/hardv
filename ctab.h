@@ -3,6 +3,7 @@
 
 #include "card.h"
 
+extern char *bakfname;
 extern int cardno;
 
 int loadctab(char *filename, struct card *cards, int maxn);

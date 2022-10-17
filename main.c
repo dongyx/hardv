@@ -63,6 +63,14 @@ main(int argc, char **argv)
 					*argv, cardno, aestr());
 			else
 				aeprint(*argv);
+			if (bakfname)
+				fprintf(stderr,
+					"\nAn error occured while "
+					"saving %s. "
+					"A backup file is created at %s"
+					", you should check it and "
+					"recover the data.\n",
+					*argv, bakfname);
 			return 1;
 		}
 		argv++;
