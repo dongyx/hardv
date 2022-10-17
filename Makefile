@@ -1,4 +1,4 @@
-.PHONY: targets clean install test
+.PHONY: targets clean install test tag
 
 CC = cc
 CFLAGS = -std=c89 -D_POSIX_C_SOURCE=200809L -pedantic
@@ -71,3 +71,18 @@ install: $(targets)
 	$(INSTALL) hardv $(bindir)
 	$(INSTALL) -d $(mandir)/man1
 	$(INSTALL) hardv.1 $(mandir)/man1
+
+tag:
+	@set -e; \
+	if [ "$$(git status -s)" ]; then \
+		echo workspace not clean; \
+		exit 1; \
+	fi; \
+	git tag "v$$(cat version)"
+
+arch:
+	@set -e; \
+	mkdir -p release; \
+	for i in `git tag`; do \
+		git archive $$i | gzip >release/hardv-$${i#v}.tar.gz; \
+	done;
