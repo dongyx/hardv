@@ -4,6 +4,7 @@
 #include <time.h>
 #include "card.h"
 #include "ctab.h"
+#include "apperr.h"
 #include "parse.h"
 #include "learn.h"
 
@@ -69,7 +70,12 @@ static int recall(struct card *card, time_t now)
 CHECK:
 	fputs("press <ENTER> to check the back\n", stdout);
 	fflush(stdout);
-	fgets(in, sizeof in, stdin);
+	if (!fgets(in, sizeof in, stdin)) {
+		if (feof(stdin))
+			return 0;
+		apperr = AESYS;
+		return -1;
+	}
 	if (strcmp(in, "\n"))
 		goto CHECK;
 	printf("%s\n\n", getback(card));
@@ -77,7 +83,12 @@ CHECK:
 QUERY:
 	fputs("do you recall? (y/n/s)\n", stdout);
 	fflush(stdout);
-	fgets(in, sizeof in, stdin);
+	if (!fgets(in, sizeof in, stdin)) {
+		if (feof(stdin))
+			return 0;
+		apperr = AESYS;
+		return -1;
+	}
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
 		goto QUERY;
 	switch (in[0]) {

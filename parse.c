@@ -78,9 +78,11 @@ int readcard(FILE *fp, struct card *card)
 		} else {	/* blank line */
 			ungetc('\n', fp);
 			nblank = 0;
+			lineno--;
 			while (nblank <= NBLANK
 				&& (ch = fgetc(fp)) == '\n')
 				nblank++;
+			lineno += nblank;
 			if (nblank > NBLANK) {
 				apperr = AENNEWL;
 				return -1;

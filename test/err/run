@@ -1,0 +1,11 @@
+#!/bin/sh
+
+set -e
+for in in *.in; do
+	tin="${in%.in}.tin"
+	out="${in%.in}.out"
+	ans="${in%.in}.ans"
+	cp $in $tin
+	hardv $tin >/dev/null 2>$out || true
+	diff -u $ans $out
+done

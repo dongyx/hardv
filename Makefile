@@ -52,11 +52,6 @@ test: $(targets)
 		cd ../..; \
 	done; \
 	echo all tests passed;
-	@for i in test/*; do \
-		cd $$i;	\
-		./clean; \
-		cd ../..; \
-	done
 
 clean:
 	@rm -rf $(targets) $(deps) $(objs)
