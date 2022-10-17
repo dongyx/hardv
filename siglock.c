@@ -10,17 +10,16 @@ int siglock(int act, ...)
 {
 	static sigset_t set, oset;
 	va_list ap;
-	int *sig;
+	int sig;
 
 	switch (act) {
 	case SIGLOCK_INIT:
 		sigprocmask(SIG_BLOCK, NULL, &oset);
 		sigemptyset(&set);
 		va_start(ap, act);
-		sig = va_arg(ap, int *);
+		while ((sig = va_arg(ap, int)))
+			sigaddset(&set, sig);
 		va_end(ap);
-		while (*sig)
-			sigaddset(&set, *sig++);
 		break;
 	case SIGLOCK_LOCK:
 		sigprocmask(SIG_BLOCK, &set, &oset);

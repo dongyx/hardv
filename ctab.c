@@ -6,6 +6,8 @@
 #include "siglock.h"
 #include "ctab.h"
 
+int cardno;
+
 int loadctab(char *filename, struct card *cards, int maxn)
 {
 	FILE *fp;
@@ -15,11 +17,16 @@ int loadctab(char *filename, struct card *cards, int maxn)
 		apperr = AESYS;
 		return -1;
 	}
-	n = 0;
+	lineno = cardno = n = 0;
 	while (n < maxn && (nfield = readcard(fp, &cards[n])) > 0)
 		n++;
-	if (nfield == -1)
+	switch (nfield) {
+	case -2:
+		lineno = 0;
+		cardno = n + 1;
+	case -1:
 		return -1;
+	}
 	if (!feof(fp)) {
 		apperr = AENCARD;
 		return -1;

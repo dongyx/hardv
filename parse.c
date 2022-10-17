@@ -24,7 +24,7 @@
 		val[-1] = '\0'; \
 } while (0)
 
-int inparse, lineno;
+int lineno;
 
 int readcard(FILE *fp, struct card *card)
 {
@@ -32,7 +32,6 @@ int readcard(FILE *fp, struct card *card)
 	int n, sep, nblank, ch;
 	struct field *field, *i;
 
-	inparse = 1;
 	while ((ch = fgetc(fp)) == '\n')
 		;
 	if (ch != EOF)
@@ -97,7 +96,6 @@ int readcard(FILE *fp, struct card *card)
 			*val = '\0';
 		}
 	}
-	inparse = 0;
 	if (ferror(fp)) {
 		apperr = AESYS;
 		return -1;
@@ -105,7 +103,7 @@ int readcard(FILE *fp, struct card *card)
 	if (card->nfield) {
 		TRIM();
 		if (validcard(card) == -1)
-			return -1;
+			return -2;
 	}
 	return card->nfield;
 }

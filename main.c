@@ -9,6 +9,7 @@
 #include "apperr.h"
 #include "parse.h"
 #include "learn.h"
+#include "ctab.h"
 #include "card.h"
 
 static void help(FILE *fp);
@@ -16,13 +17,13 @@ static void pversion(FILE *fp);
 
 main(int argc, char **argv)
 {
-	int sig[] = { SIGHUP, SIGINT, SIGTERM, 0}, ch, i;
 	struct learnopt opt;
 	char *envnow;
 	time_t now;
+	int ch;
 
 	memset(&opt, 0, sizeof opt);
-	siglock(SIGLOCK_INIT, sig);
+	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM);
 	while ((ch = getopt(argc, argv, "ehv")) != -1)
 		switch (ch) {
 		case 'e':
@@ -52,10 +53,14 @@ main(int argc, char **argv)
 		now = time(NULL);
 	while (*argv) {
 		if (learn(*argv, now, &opt) == -1) {
-			if (inparse)
+			if (lineno > 0)
 				fprintf(stderr,
 					"%s, line %d: %s\n",
 					*argv, lineno, aestr());
+			else if (cardno > 0)
+				fprintf(stderr,
+					"%s, card %d: %s\n",
+					*argv, cardno, aestr());
 			else
 				aeprint(*argv);
 			return 1;

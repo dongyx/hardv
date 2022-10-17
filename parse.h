@@ -5,7 +5,7 @@
 #define NBLANK 65536
 #define LINESZ 1024
 
-extern int inparse, lineno;
+extern int lineno;
 
 int readcard(FILE *fp, struct card *card);
 int writecard(FILE *fp, struct card *card);

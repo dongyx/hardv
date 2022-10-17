@@ -2,7 +2,6 @@
 #define APPERR_H
 
 extern int apperr;
-extern int cardno, lineno;
 
 char *aestr(void);
 void aeprint(char *head);
