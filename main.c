@@ -23,7 +23,7 @@ main(int argc, char **argv)
 
 	srand(time(NULL));
 	memset(&opt, 0, sizeof opt);
-	opt.maxn = NCARD;
+	opt.maxn = -1;
 	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM);
 	while ((ch = getopt(argc, argv, "hvern:")) != -1)
 		switch (ch) {

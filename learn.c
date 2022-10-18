@@ -42,11 +42,12 @@ int learn(char *filename, int now, struct learnopt *opt)
 	else
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 	learnt = 0;
-	for (i = 0; i < ncard && opt->maxn > 0; i++)
+	for (i = 0; i < ncard && opt->maxn; i++)
 		if (isnow(&cardtab[plan[i]], now)) {
 			if (recall(&cardtab[plan[i]], now) == -1)
 				return -1;
-			opt->maxn--;
+			if (opt->maxn > 0)
+				opt->maxn--;
 		}
 	return 0;
 }
