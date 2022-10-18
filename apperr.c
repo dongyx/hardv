@@ -21,7 +21,8 @@ char *aestr(void)
 		"too many lines",
 		"too many cards",
 		"invalid function arguments",
-		"file name too large"
+		"file name too large",
+		"no space for reserved fields"
 	};
 
 	if (!apperr)

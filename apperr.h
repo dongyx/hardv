@@ -27,7 +27,8 @@ enum {
 	AENLINE,	/* too many lines */
 	AENCARD,	/* too many cards */
 	AEINVAL,	/* invalid function arguments */
-	AEPATHSZ	/* file name too large */
+	AEPATHSZ,	/* file name too large */
+	AERSVFIELD	/* no space for reserved fields */
 };
 
 #endif

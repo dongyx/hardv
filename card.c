@@ -66,7 +66,7 @@ int validcard(struct card *card)
 	}
 	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
 	if (card->nfield - n > NFIELD - 2) {
-		apperr = AENFIELD;
+		apperr = AERSVFIELD;
 		return -1;
 	}
 	return 0;
