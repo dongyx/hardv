@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+for in in *.in; do
+	n="${in%.in}.n"
+	tin="${in%.in}.tin"
+	out="${in%.in}.out"
+	ans="${in%.in}.ans"
+	cp $in $tin
+	while :; do
+		echo
+		echo s
+	done | hardv -n "`cat $n`" $tin | grep ENTER \
+		| wc -l | tr -d ' ' > $out
+	diff -u $ans $out
+done

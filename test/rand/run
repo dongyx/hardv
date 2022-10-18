@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+for in in *.in; do
+	tin="${in%.tin}.tin"
+	out="${in%.in}.out"
+	sout="${in%.in}.sout"
+	ans="${in%.in}.ans"
+	sans="${in%.in}.sans"
+	cp $in $tin
+	while :; do
+		echo
+		echo s
+	done | hardv -r $tin \
+		| grep -v ENTER \
+		| grep -v recall \
+		| grep -v ^$ >$out
+	awk '$1 == "FRONT" || $1 == "BACK" { print $2 }' $in >$ans
+	! diff $ans $out >/dev/null
+	sort $ans > $sans
+	sort $out > $sout
+	diff -u $sans $sout
+done

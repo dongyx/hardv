@@ -72,32 +72,71 @@ There are three choices for a card.
 
 .TP
 1. \fBy\fR
-the user can recall the card;
-the next quiz time for this card will be doubly scheduled
+The user can recall the card;
+The next quiz time for this card will be doubly scheduled.
 
 .TP
 2. \fBn\fR
-the user can not recall the card;
-the next quiz time for this card will be scheduled at 24 hours later
+The user can not recall the card;
+The next quiz time for this card will be scheduled at 24 hours later.
 
 .TP
 3. \fBs\fR
-skip the card;
-nothing will be updated
+Skip the card;
+Nothing will be updated.
 
 .SH OPTIONS
 
 .TP
 \fB-e
-test a card only if the start time of the quiz is not earlier
+Test a card only if the start time of the quiz is not earlier
 than the exact scheduled quiz time of the card;
-if this option is not specified, any card whose scheduled quiz time
+If this option is not specified, any card whose scheduled quiz time
 is earlier than or within today will be tested.
 
 .TP
+\fB-r
+Test cards in a random order.
+
+.TP
+\fB-n \fIn\fR
+Test at most \fIn\fR cards.
+
+.TP
 \fB-h
-print the brief help message
+Print the brief help message.
 
 .TP
 \fB-v
-print the version and building information
+Print the version and building information.
+
+.SH LIMITATION
+
+Running \fBhardv -v\fR prints several building information
+which determine the limitation of data.
+
+.TP
+\fBNLINE\fR
+The number of lines in the input file can't exceed \fBNLINE\fR.
+
+.TP
+\fBLINESZ
+A line in the input file must be less than \fBLINESZ\fR bytes
+
+.TP
+\fBNCARD\fR
+The number of cards in the input file can't exceed \fBNCARD\fR
+
+.TP
+\fBNFIELD\fR
+A card can contain at most \fBNFIELD\fR fields.
+After running a quiz, the \fBPREV\fR and \fBNEXT\fR fields may be
+inserted. Reserve space for them.
+
+.TP
+\fBKEYSZ\fR
+The field key must be less than \fBKEYSZ\fR bytes.
+
+.TP
+\fBVALSZ\fR
+The field value must be less than \fBVALSZ\fR bytes.

@@ -5,6 +5,8 @@
 
 struct learnopt {
 	int exact;
+	int rand;
+	int maxn;
 };
 
 /* Load cards in `filename` with the quiz time `now` and options `opt`.

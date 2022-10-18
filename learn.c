@@ -23,7 +23,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
-	int i;
+	int i, j, swp, learnt;
 
 	curfile = filename;
 	learnopt = opt;
@@ -32,11 +32,22 @@ int learn(char *filename, int now, struct learnopt *opt)
 		return -1;
 	for (i = 0; i < ncard; i++)
 		plan[i] = i;
-	qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
-	for (i = 0; i < ncard; i++)
-		if (isnow(&cardtab[plan[i]], now))
+	if (opt->rand)
+		for (i = 0; i < ncard; i++) {
+			j = i + rand() % (ncard - i);
+			swp = plan[i];
+			plan[i] = plan[j];
+			plan[j] = swp;
+		}
+	else
+		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
+	learnt = 0;
+	for (i = 0; i < ncard && opt->maxn > 0; i++)
+		if (isnow(&cardtab[plan[i]], now)) {
 			if (recall(&cardtab[plan[i]], now) == -1)
 				return -1;
+			opt->maxn--;
+		}
 	return 0;
 }
 
@@ -119,6 +130,6 @@ static int plancmp(int *i, int *j)
 	if (ni < nj) return -1;
 	if (ni > nj) return 1;
 	if (*i < *j) return -1;
-	if (*i > *j) return -1;
+	if (*i > *j) return 1;
 	return 0;
 }

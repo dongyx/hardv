@@ -7,10 +7,9 @@
 #include <time.h>
 #include "siglock.h"
 #include "apperr.h"
-#include "parse.h"
+#include "applim.h"
 #include "learn.h"
 #include "ctab.h"
-#include "card.h"
 
 static void help(FILE *fp);
 static void pversion(FILE *fp);
@@ -22,12 +21,23 @@ main(int argc, char **argv)
 	time_t now;
 	int ch;
 
+	srand(time(NULL));
 	memset(&opt, 0, sizeof opt);
+	opt.maxn = NCARD;
 	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM);
-	while ((ch = getopt(argc, argv, "ehv")) != -1)
+	while ((ch = getopt(argc, argv, "hvern:")) != -1)
 		switch (ch) {
 		case 'e':
 			opt.exact = 1;
+			break;
+		case 'r':
+			opt.rand = 1;
+			break;
+		case 'n':
+			if ((opt.maxn = atoi(optarg)) <= 0) {
+				help(stderr);
+				return 1;
+			}
 			break;
 		case 'h':
 			help(stdout);
@@ -81,6 +91,8 @@ static void help(FILE *fp)
 	fputs("options\n", fp);
 	fputs("\n", fp);
 	fputs("-e	enable exact quiz time\n", fp);
+	fputs("-r	randomize the quiz order\n", fp);
+	fputs("-n <n>	test at most <n> cards\n", fp);
 	fputs("-h	print this help information\n", fp);
 	fputs("-v	print version and building information\n", fp);
 }

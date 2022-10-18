@@ -1,6 +1,8 @@
 /hardv
 /hardv.1
 .DS_Store
+*.sans
+*.sout
 *.tin
 *.out
 *.swp
