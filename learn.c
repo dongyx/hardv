@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include <stdio.h>
 #include <time.h>
 #include "card.h"
@@ -64,7 +65,7 @@ static int recall(struct card *card, time_t now)
 	if (prev == 0)
 		prev = now;	
 	getnext(card, &next);
-	if ((diff = next - prev) < day)
+	if (next < prev || (diff = next - prev) < day)
 		diff = day;
 	printf("%s\n\n", getfront(card));
 	fflush(stdout);
@@ -94,20 +95,14 @@ QUERY:
 		goto QUERY;
 	switch (in[0]) {
 	case 'y':
-		if (setprev(card, now) == -1)
-			return -1;
-		if (setnext(card, now + 2*diff) == -1)
-			return -1;
-		if (dumpctab(curfile, cardtab, ncard) == -1)
-			return -1;
+		if (setprev(card, now)) return -1;
+		if (setnext(card, now + 2*diff)) return -1;
+		if (dumpctab(curfile, cardtab, ncard)) return -1;
 		break;
 	case 'n':
-		if (setprev(card, now) == -1)
-			return -1;
-		if (setnext(card, now + day) == -1)
-			return -1;
-		if (dumpctab(curfile, cardtab, ncard) == -1)
-			return -1;
+		if (setprev(card, now)) return -1;
+		if (setnext(card, now + day)) return -1;
+		if (dumpctab(curfile, cardtab, ncard)) return -1;
 		break;
 	case 's':
 		break;
@@ -121,13 +116,9 @@ static int plancmp(int *i, int *j)
 
 	getnext(&cardtab[*i], &ni);
 	getnext(&cardtab[*j], &nj);
-	if (ni < nj)
-		return -1;
-	if (ni > nj)
-		return 1;
-	if (*i < *j)
-		return -1;
-	if (*i > *j)
-		return -1;
+	if (ni < nj) return -1;
+	if (ni > nj) return 1;
+	if (*i < *j) return -1;
+	if (*i > *j) return -1;
 	return 0;
 }
