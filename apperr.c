@@ -5,7 +5,7 @@
 
 int apperr;
 
-char *aestr(void)
+char *aestr(int eno)
 {
 	static char *msg[] = {
 		NULL,
@@ -22,20 +22,21 @@ char *aestr(void)
 		"too many cards",
 		"invalid function arguments",
 		"file name too large",
-		"no space for reserved fields"
+		"no space for reserved fields",
+		"fail to create backup file"
 	};
 
-	if (!apperr)
+	if (!eno)
 		return strerror(errno);
-	if (apperr < 0 || apperr >= sizeof msg / sizeof msg[0])
+	if (eno < 0 || eno >= sizeof msg / sizeof msg[0])
 		return "undefined application error";
-	return msg[apperr];
+	return msg[eno];
 }
 
 void aeprint(char *head)
 {
 	if (head)
-		fprintf(stderr, "%s: %s\n", head, aestr());
+		fprintf(stderr, "%s: %s\n", head, aestr(apperr));
 	else
-		fprintf(stderr, " %s\n", aestr());
+		fprintf(stderr, " %s\n", aestr(apperr));
 }

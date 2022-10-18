@@ -4,7 +4,7 @@
 #include "card.h"
 
 extern char *bakfname;
-extern int lineno;
+extern int lineno, bakferr;
 
 /* Load at most `maxn` cards from the file `filename` into `cards`
  * 
@@ -23,6 +23,10 @@ int loadctab(char *filename, struct card *cards, int maxn);
  * Upon successful completion 0 is returned.
  * Otherwise, -1 is returned and the global variable `apperr` is set
  * to indicate the error.
+ *
+ * If the error is failing to create the backup file, `apperr` is set
+ * to `AEBACKUP` and the global variable `bakferr` is set to indicate
+ * the detailed reason.
  *
  * If the error occurred but the backup file was created, the global
  * variable `bakfname` is also set to the path of the backup file.

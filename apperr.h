@@ -10,7 +10,7 @@
 
 extern int apperr;
 
-char *aestr(void);
+char *aestr(int eno);
 void aeprint(char *head);
 
 enum {
@@ -28,7 +28,8 @@ enum {
 	AENCARD,	/* too many cards */
 	AEINVAL,	/* invalid function arguments */
 	AEPATHSZ,	/* file name too large */
-	AERSVFIELD	/* no space for reserved fields */
+	AERSVFIELD,	/* no space for reserved fields */
+	AEBACKUP	/* fail to create backup file */
 };
 
 #endif

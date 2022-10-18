@@ -14,7 +14,7 @@
 static char *backup(char *src);
 
 char *bakfname;
-int lineno;
+int lineno, bakferr;
 
 int loadctab(char *filename, struct card *cards, int maxn)
 {
@@ -49,6 +49,11 @@ int dumpctab(char *filename, struct card *cards, int n)
 
 	ret = -1;
 	siglock(SIGLOCK_LOCK);
+	if (!(bakfname = backup(filename))) {
+		bakferr = apperr;
+		apperr = AEBACKUP;
+		goto RET;
+	}
 	ECHK(!(bakfname = backup(filename)), apperr, goto RET);
 	ECHK(!(fp = fopen(filename, "w")), AESYS, goto ULK);
 	for (i = 0; i < n; i++) {

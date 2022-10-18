@@ -1,6 +1,7 @@
 #ifndef LEARN_H
 #define LEARN_H
 
+#include "ctab.h"
 #include "card.h"
 
 struct learnopt {
@@ -18,6 +19,10 @@ struct learnopt {
  * If the error occurred during parsing, the global variable `lineno`
  * is also set to the line number where the error occurred.
  * Otherwise, `lineno` is set to 0.
+ *
+ * If the error is failing to create the backup file, `apperr` is set
+ * to `AEBACKUP` and the global variable `bakferr` is set to indicate
+ * the detailed reason.
  *
  * If the error occurred during dumping but the backup file was created,
  * the global variable `bakfname` is also set to the path of the
