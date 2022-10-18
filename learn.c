@@ -5,6 +5,7 @@
 #include "card.h"
 #include "ctab.h"
 #include "apperr.h"
+#include "applim.h"
 #include "parse.h"
 #include "learn.h"
 

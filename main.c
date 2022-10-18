@@ -57,15 +57,11 @@ main(int argc, char **argv)
 				fprintf(stderr,
 					"%s, line %d: %s\n",
 					*argv, lineno, aestr());
-			else if (cardno > 0)
-				fprintf(stderr,
-					"%s, card %d: %s\n",
-					*argv, cardno, aestr());
 			else
 				aeprint(*argv);
 			if (bakfname)
 				fprintf(stderr,
-					"\nAn error occured while "
+					"\nAn error occurred while "
 					"saving %s. "
 					"A backup file is created at %s"
 					", you should check it and "
@@ -94,10 +90,10 @@ static void pversion(FILE *fp)
 	fprintf(fp, "hardv %s\n", VERSION);
 	fprintf(fp, "%s\n", COPYRT);
 	fputc('\n', fp);
+	fprintf(fp, "NLINE:	%d\n", NLINE);
+	fprintf(fp, "LINESZ:	%d\n", LINESZ);
 	fprintf(fp, "NCARD:	%d\n", NCARD);
 	fprintf(fp, "NFIELD:	%d\n", NFIELD);
-	fprintf(fp, "NBLANK:	%d\n", NBLANK);
-	fprintf(fp, "LINESZ:	%d\n", LINESZ);
 	fprintf(fp, "KEYSZ:	%d\n", KEYSZ);
 	fprintf(fp, "VALSZ:	%d\n", VALSZ);
 }

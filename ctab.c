@@ -5,104 +5,82 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "apperr.h"
+#include "applim.h"
 #include "card.h"
 #include "parse.h"
 #include "siglock.h"
 #include "ctab.h"
-#define NAMESZ 1024
 
 static char *backup(char *src);
 
 char *bakfname;
-int cardno;
+int lineno;
 
 int loadctab(char *filename, struct card *cards, int maxn)
 {
 	FILE *fp;
-	int n, nfield;
+	int ret, ncard, nline, maxnl, n;
 
-	if (!(fp = fopen(filename, "r"))) {
-		apperr = AESYS;
-		return -1;
+	ret = -1;
+	ECHK(!(fp = fopen(filename, "r")), AESYS, goto RET);
+	maxnl = NLINE;
+	ncard = lineno = 0;
+	while (ncard < maxn) {
+		n = readcard(fp, &cards[ncard], &nline, maxnl);
+		maxnl -= nline;
+		if (n == 0)
+			break;
+		if (n == -1) {
+			lineno = NLINE - maxnl;
+			goto CLS;
+		}
+		ncard++;
 	}
-	lineno = cardno = n = 0;
-	while (n < maxn && (nfield = readcard(fp, &cards[n])) > 0)
-		n++;
-	switch (nfield) {
-	case -2:
-		lineno = 0;
-		cardno = n + 1;
-	case -1:
-		return -1;
-	}
-	if (!feof(fp)) {
-		apperr = AENCARD;
-		return -1;
-	}
-	return n;
+	if (feof(fp))
+		ret = ncard;
+CLS:	fclose(fp);
+RET:	return ret;
 }
 
 int dumpctab(char *filename, struct card *cards, int n)
 {
 	FILE *fp;
-	int i;
+	int ret, i;
 
+	ret = -1;
 	siglock(SIGLOCK_LOCK);
-	if (!(bakfname = backup(filename)))
-		return -1;
-	if (!(fp = fopen(filename, "w"))) {
-		apperr = AESYS;
-		return -1;
-	}
+	ECHK(!(bakfname = backup(filename)), apperr, goto RET);
+	ECHK(!(fp = fopen(filename, "w")), AESYS, goto ULK);
 	for (i = 0; i < n; i++) {
-		if (i && fputc('\n', fp) == EOF) {
-			apperr = AESYS;
-			return -1;
-		}
-		if (writecard(fp, &cards[i]) == -1)
-			return -1;
+		ECHK(i && fputc('\n', fp) == EOF, AESYS, goto WERR);
+		ECHK(writecard(fp, &cards[i]) == -1, apperr, goto WERR);
 	}
-	if (fclose(fp) == -1) {
-		apperr = AESYS;
-		return -1;
-	}
-	unlink(bakfname);
+	ECHK(fclose(fp) == EOF, AESYS, goto RET);
+ULK:	unlink(bakfname);
 	bakfname = NULL;
-	siglock(SIGLOCK_UNLOCK);
-	return 0;
+	ret = 0;
+RET:	siglock(SIGLOCK_UNLOCK);
+	return ret;
+WERR:	fclose(fp);
+	goto RET;
 }
 
 static char *backup(char *src)
 {
-	static char dst[NAMESZ];
+	static char dst[PATHSZ];
 	char *ret, buf[BUFSIZ];
-	ssize_t n;
-	int fd[2];
+	int fd[2], n;
 
-	strcpy(dst, "/tmp/hardv.XXXXXX");
 	ret = NULL;
-	if ((fd[1] = mkstemp(dst)) == -1) {
-		apperr = AESYS;
-		goto RET;
-	}
-	if ((fd[0] = open(src, O_RDONLY)) == -1) {
-		apperr = AESYS;
-		goto CL1;
-	}
+	strncpy(dst, "/tmp/hardv.XXXXXX", PATHSZ);
+	ECHK(dst[PATHSZ - 1], AEPATHSZ, goto RET);
+	ECHK((fd[1] = mkstemp(dst)) == -1, AESYS, goto RET);
+	ECHK((fd[0] = open(src, O_RDONLY)) == -1, AESYS, goto CL1); 
 	while ((n = read(fd[0], buf, sizeof buf)) > 0)
-		if (write(fd[1], buf, n) == -1) {
-			apperr = AESYS;
-			goto CL0;
-		}
-	if (n < 0) {
-		apperr = AESYS;
-		goto CL0;
-	}
+		 ECHK(write(fd[1], buf, n) != n, AESYS, goto CL0); 
+	ECHK(n < 0, AESYS, goto CL0);
 	ret = dst;
-CL0:
-	close(fd[0]);
-CL1:
-	close(fd[1]);
-RET:
-	return ret;
+CL0:	close(fd[0]);
+CL1:	close(fd[1]);
+RET:	return ret;
 }

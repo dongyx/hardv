@@ -46,13 +46,20 @@ int setnext(struct card *card, time_t next)
 	return settime(card, NEXT, next);
 }
 
+int validfield(struct field *field)
+{
+	time_t t;
+
+	if (!strcmp(field->key, PREV) || !strcmp(field->key, NEXT))
+		return parsetm(field->val, &t);
+	return 0;
+}
+
 int validcard(struct card *card)
 {
 	time_t prev, next;
 	int n;
 
-	if (getprev(card, &prev) == -1 || getnext(card, &next) == -1)
-		return -1;
 	if (!getfront(card) || !getback(card)) {
 		apperr = AEMFIELD;
 		return -1;

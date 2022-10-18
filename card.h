@@ -2,9 +2,7 @@
 #define	CARD_H
 
 #include <time.h>
-#define KEYSZ 8
-#define VALSZ 1024
-#define NFIELD 8
+#include "applim.h"
 
 struct field {
 	char key[KEYSZ];
@@ -22,6 +20,7 @@ int getprev(struct card *card, time_t *tp);
 int getnext(struct card *card, time_t *tp);
 int setprev(struct card *card, time_t prev);
 int setnext(struct card *card, time_t next);
+int validfield(struct field *field);
 int validcard(struct card *card);
 int parsetm(char *s, time_t *tp);
 

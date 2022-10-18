@@ -6,6 +6,9 @@ for in in *.in; do
 	out="${in%.in}.out"
 	ans="${in%.in}.ans"
 	cp $in $tin
-	hardv $tin >/dev/null 2>$out || true
+	while :; do
+		echo
+		echo s
+	done | hardv $tin >/dev/null 2>$out || true
 	diff -u $ans $out
 done

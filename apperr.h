@@ -1,6 +1,13 @@
 #ifndef APPERR_H
 #define APPERR_H
 
+#define ECHK(expr, e, r) do { \
+	if ((expr)) { \
+		apperr = (e); \
+		r; \
+	} \
+} while (0)
+
 extern int apperr;
 
 char *aestr(void);
@@ -17,9 +24,10 @@ enum {
 	AELINESZ,	/* line too large */
 	AENOVAL,	/* field value is expected */
 	AEDUPKEY,	/* duplicated key */
-	AENNEWL,	/* too many consecutive blank lines */
-	AENCARD,	/* too many cards in an input file */
-	AEINVAL	/* invalid function arguments */
+	AENLINE,	/* too many lines */
+	AENCARD,	/* too many cards */
+	AEINVAL,	/* invalid function arguments */
+	AEPATHSZ	/* file name too large */
 };
 
 #endif

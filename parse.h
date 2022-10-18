@@ -2,12 +2,8 @@
 #define PARSE_H
 
 #include "card.h"
-#define NBLANK 65536
-#define LINESZ 1024
 
-extern int lineno;
-
-int readcard(FILE *fp, struct card *card);
+int readcard(FILE *fp, struct card *card, int *nline, int maxnl);
 int writecard(FILE *fp, struct card *card);
 
 #endif

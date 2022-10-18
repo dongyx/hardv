@@ -18,9 +18,10 @@ char *aestr(void)
 		"line too large",
 		"field value is expected",
 		"duplicated key",
-		"too many consecutive blank lines",
-		"too many cards in an input file",
-		"invalid function arguments"
+		"too many lines",
+		"too many cards",
+		"invalid function arguments",
+		"file name too large"
 	};
 
 	if (!apperr)
