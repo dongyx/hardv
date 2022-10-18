@@ -3,8 +3,8 @@
 set -e
 for in in *.in; do
 	n="${in%.in}.n"
-	tin="${in%.in}.tin"
-	out="${in%.in}.out"
+	tin="${in%.in}.tin.tmp"
+	out="${in%.in}.out.tmp"
 	ans="${in%.in}.ans"
 	cp $in $tin
 	while :; do

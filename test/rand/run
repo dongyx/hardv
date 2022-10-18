@@ -2,11 +2,11 @@
 
 set -e
 for in in *.in; do
-	tin="${in%.tin}.tin"
-	out="${in%.in}.out"
-	sout="${in%.in}.sout"
-	ans="${in%.in}.ans"
-	sans="${in%.in}.sans"
+	tin="${in%.tin}.tin.tmp"
+	out="${in%.in}.out.tmp"
+	rout="${in%.in}.rout.tmp"
+	sout="${in%.in}.sout.tmp"
+	srout="${in%.in}.srout.tmp"
 	cp $in $tin
 	while :; do
 		echo
@@ -14,10 +14,16 @@ for in in *.in; do
 	done | hardv -r $tin \
 		| grep -v ENTER \
 		| grep -v recall \
+		| grep -v ^$ >$rout
+	while :; do
+		echo
+		echo s
+	done | hardv $tin \
+		| grep -v ENTER \
+		| grep -v recall \
 		| grep -v ^$ >$out
-	awk '$1 == "FRONT" || $1 == "BACK" { print $2 }' $in >$ans
-	! diff $ans $out >/dev/null
-	sort $ans > $sans
 	sort $out > $sout
-	diff -u $sans $sout
+	sort $rout > $srout
+	! diff $out $rout >/dev/null
+	diff $sout $srout
 done
