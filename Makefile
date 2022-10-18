@@ -29,7 +29,7 @@ main.o: main.c version LICENSE
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 %.d: %.c
-	$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
+	@$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
 
 hardv.1: hardv.man1
 	@echo building manpage...
