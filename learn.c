@@ -83,7 +83,7 @@ static int recall(struct card *card, time_t now)
 	getnext(card, &next);
 	if (next < prev || (diff = next - prev) < day)
 		diff = day;
-	printf("%s\n\n", getfront(card));
+	printf("%s\n\n", getques(card));
 	fflush(stdout);
 CHECK:
 	fputs("press <ENTER> to check the back\n", stdout);
@@ -96,7 +96,7 @@ CHECK:
 	}
 	if (strcmp(in, "\n"))
 		goto CHECK;
-	printf("%s\n\n", getback(card));
+	printf("%s\n\n", getansw(card));
 	fflush(stdout);
 QUERY:
 	fputs("do you recall? (y/n/s)\n", stdout);

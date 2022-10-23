@@ -14,8 +14,8 @@ struct card {
 	struct field field[NFIELD];
 };
 
-char *getfront(struct card *card);
-char *getback(struct card *card);
+char *getques(struct card *card);
+char *getansw(struct card *card);
 int getprev(struct card *card, time_t *tp);
 int getnext(struct card *card, time_t *tp);
 int setprev(struct card *card, time_t prev);

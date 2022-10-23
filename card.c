@@ -6,8 +6,8 @@
 #include "apperr.h"
 #include "card.h"
 #define TIMEFMT "%Y-%m-%d %H:%M:%S %z"
-#define FRONT "FRONT"
-#define BACK "BACK"
+#define QUES "Q"
+#define ANSW "A"
 #define NEXT "NEXT"
 #define PREV "PREV"
 
@@ -15,15 +15,14 @@ static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
 
-char *getfront(struct card *card)
+char *getques(struct card *card)
 {
-	return getfield(card, FRONT);
+	return getfield(card, QUES);
 }
 
-char *getback(struct card *card)
+char *getansw(struct card *card)
 {
-
-	return getfield(card, BACK);
+	return getfield(card, ANSW);
 }
 
 int getprev(struct card *card, time_t *tp)
@@ -60,7 +59,7 @@ int validcard(struct card *card)
 	time_t prev, next;
 	int n;
 
-	if (!getfront(card) || !getback(card)) {
+	if (!getques(card) || !getansw(card)) {
 		apperr = AEMFIELD;
 		return -1;
 	}
