@@ -23,7 +23,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
-	int i, j, swp, first;
+	int i, j, swp;
 
 	curfile = filename;
 	learnopt = opt;
@@ -41,13 +41,11 @@ int learn(char *filename, int now, struct learnopt *opt)
 		}
 	else
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
-	first = 1;
 	for (i = 0; i < ncard && opt->maxn; i++)
 		if (isnow(&cardtab[plan[i]], now)) {
-			if (first)
-				first = 0;
-			else
+			if (opt->any)
 				putchar('\n');
+			opt->any = 1;
 			if (recall(&cardtab[plan[i]], now) == -1)
 				return -1;
 			if (opt->maxn > 0)

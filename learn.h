@@ -5,6 +5,7 @@
 #include "card.h"
 
 struct learnopt {
+	int any;
 	int exact;
 	int rand;
 	int maxn;
