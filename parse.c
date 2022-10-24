@@ -38,24 +38,24 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 			return -1);
 		if (line[0] == '\t') {	/* successive value line */
 			ECHK(!field, AENOKEY, return -1);
-			CHK_VALSZ(n - 1);
-			val = stpcpy(val, &line[1]);
+			CHK_VALSZ(n);
+			val = stpcpy(val, line);
 		} else if (line[0] != '\n') {	/* new field key */
 			ECHK(++card->nfield > NFIELD, AENFIELD,
 				return -1);
-			TRIM();
+			/*TRIM();*/
 			ECHK(field && validfield(field), apperr,
 				return -1);
 			field = &card->field[card->nfield - 1];
 			val = field->val;
-			sep = strcspn(line, "\t");
-			ECHK(!line[sep], AENOVAL, return -1);
-			line[sep++] = '\0';
-			ECHK(sep > KEYSZ, AEKEYSZ, return -1);
-			strcpy(field->key, line);
+			sep = strcspn(line, "\n\t");
+			ECHK(sep >= KEYSZ, AEKEYSZ, return -1);
+			strncpy(field->key, line, sep);
 			for (i = card->field; i != field; i++)
 				ECHK(!strcmp(field->key, i->key),
 					AEDUPKEY, return -1);
+			if (!line[sep])
+				continue;
 			CHK_VALSZ(n - sep);
 			val = stpcpy(val, &line[sep]);
 		} else {	/* blank line */
@@ -79,7 +79,7 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 	}
 	ECHK(ferror(fp), AESYS, return -1);
 	if (card->nfield) {
-		TRIM();
+		/*TRIM();*/
 		ECHK(validfield(field), apperr, return -1);
 		ECHK(validcard(card), apperr, return -1);
 	}
@@ -88,19 +88,10 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 
 int writecard(FILE *fp, struct card *card)
 {
-	char *j;
 	int i;
 
-	for (i = 0; i < card->nfield; i++) {
-		ECHK(fprintf(fp, "%s\t", card->field[i].key) < 0,
-			AESYS, return -1);
-		for (j = card->field[i].val; *j; j++) {
-			if (j != card->field[i].val && j[-1] == '\n')
-				ECHK(fputc('\t', fp) == EOF, AESYS,
-					return -1);
-			ECHK(fputc(*j, fp) == EOF, AESYS, return -1);
-		}
-		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
-	}
+	for (i = 0; i < card->nfield; i++)
+		ECHK(fprintf(fp, "%s%s", card->field[i].key,
+			card->field[i].val) < 0, AESYS, return -1);
 	return 0;
 }

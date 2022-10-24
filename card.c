@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <time.h>
 #include "apperr.h"
 #include "card.h"
@@ -96,6 +97,7 @@ static int gettime(struct card *card, char *key, time_t *tp)
 static int settime(struct card *card, char *key, time_t t)
 {
 	struct tm *lctime;
+	char buf[VALSZ - 2];
 	int i;
 
 	for (i = 0; i < card->nfield; i++)
@@ -112,10 +114,11 @@ static int settime(struct card *card, char *key, time_t t)
 		apperr = AESYS;
 		return -1;
 	}
-	if (!strftime(card->field[i].val, VALSZ, TIMEFMT, lctime)) {
+	if (!strftime(buf, sizeof buf, TIMEFMT, lctime)) {
 		apperr = AEVALSZ;
 		return -1;
 	}
+	sprintf(card->field[i].val, "\t%s\n", buf);
 	return 0;
 }
 
@@ -124,6 +127,8 @@ int parsetm(char *s, time_t *tp)
 	struct tm buf;
 
 	memset(&buf, 0, sizeof buf);
+	while (*s && isspace(*s))
+		s++;
 	if (!strptime(s, TIMEFMT, &buf)) {
 		apperr = AETIMEF;
 		return -1;
