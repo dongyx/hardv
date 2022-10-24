@@ -1,3 +1,8 @@
+
+
+
+
+
 PREV	2022-10-11 16:20:30 +0800
 Q
 	The famous C program from a famous book:
@@ -13,10 +18,14 @@ A
 		printf("hello, world\n");
 	}
 
+
+
+
 NEXT	2023-08-11 12:00:00 +0800
 Q
 	hex(32768) = ?
 A	0x8000
+
 
 Q
 	
@@ -56,3 +65,6 @@ Q
 
 	hex(128) = ?
 A	0x80
+
+
+

@@ -14,23 +14,20 @@
 #define CHK_VALSZ(n) ECHK(val - field->val >= VALSZ - (n), AEVALSZ, \
 	return -1)
 
-#define TRIM() do { \
-	if (field && val != field->val && val[-1] == '\n') \
-		val[-1] = '\0'; \
-} while (0)
-
 int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 {
 	char line[LINESZ], *val;
 	int n, sep, nblank, ch;
 	struct field *field, *i;
 
+	memset(card, 0, sizeof *card);
 	*nline = 0;
-	while ((ch = fgetc(fp)) == '\n')
+	while ((ch = fgetc(fp)) == '\n') {
 		INCNLINE(1);
+		card->leadnewl++;
+	}
 	ECHK(ungetc(ch, fp) != ch, AESYS, return -1);
 	field = NULL, val = NULL;
-	memset(card, 0, sizeof *card);
 	while (fgets(line, sizeof line, fp)) {
 		INCNLINE(1);
 		n = strlen(line);
@@ -43,7 +40,6 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 		} else if (line[0] != '\n') {	/* new field key */
 			ECHK(++card->nfield > NFIELD, AENFIELD,
 				return -1);
-			/*TRIM();*/
 			ECHK(field && validfield(field), apperr,
 				return -1);
 			field = &card->field[card->nfield - 1];
@@ -68,8 +64,12 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 				nblank++;
 			}
 			ECHK(ungetc(ch, fp) != ch, AESYS, return -1);
-			if (ch != '\t')
+			if (ch != '\t') {
+				card->trainewl = nblank;
+				if (ch != EOF)
+					card->trainewl--;
 				break;
+			}
 			ECHK(!field, AENOKEY, return -1);
 			CHK_VALSZ(nblank);
 			while (nblank-- > 0)
@@ -79,7 +79,6 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 	}
 	ECHK(ferror(fp), AESYS, return -1);
 	if (card->nfield) {
-		/*TRIM();*/
 		ECHK(validfield(field), apperr, return -1);
 		ECHK(validcard(card), apperr, return -1);
 	}
@@ -90,8 +89,12 @@ int writecard(FILE *fp, struct card *card)
 {
 	int i;
 
+	for (i = 0; i < card->leadnewl; i++)
+		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
 	for (i = 0; i < card->nfield; i++)
 		ECHK(fprintf(fp, "%s%s", card->field[i].key,
 			card->field[i].val) < 0, AESYS, return -1);
+	for (i = 0; i < card->trainewl; i++)
+		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
 	return 0;
 }

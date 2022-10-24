@@ -10,7 +10,7 @@ struct field {
 };
 
 struct card {
-	int nfield;
+	int nfield, leadnewl, trainewl;
 	struct field field[NFIELD];
 };
 
