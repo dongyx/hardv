@@ -62,9 +62,9 @@ clean:
 	done
 		
 install: $(targets)
-	$(INSTALL) -d $(bindir)
+	@$(INSTALL) -d $(bindir)
 	$(INSTALL) hardv $(bindir)
-	$(INSTALL) -d $(mandir)/man1
+	@$(INSTALL) -d $(mandir)/man1
 	$(INSTALL) hardv.1 $(mandir)/man1
 
 tag:
