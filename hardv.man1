@@ -14,46 +14,48 @@ hardv - flashcards quiz
 
 .SH DESCRIPTION
 
-
-An input \fIfile\fR is a card set contains (flash)cards.
-
-An example of an input file (with tab size 8):
+The input \fIfile\fR contains flash cards demonstrated below:
 
 .RS
 .nf
-FRONT	hex(128) = ?
-BACK	0x80
+Q	hex(128) = ?
+A	0x80
 
-FRONT	the most famous C program from K&R, second edition
-BACK	#include <stdio.h>
+
+Q	the most famous C program from K&R, second edition
+A	#include <stdio.h>
 	
 	main()
 	{
 		printf("hello world\\n");
 	}
 
-FRONT	hex(32768) = ?
-BACK	0x8000
+
+Q	hex(32768) = ?
+A
+	0x8000
 .fi
 .RE
 
-A card is a key-value structure contains at least two fields \fBFRONT\fR
-and \fBBACK\fR.
-The key and the value are separated by a tab character.
-If the value has multiple lines, each successive line must start with a
-tab, except blank lines.
+A card is a key-value structure contains at least two fields \fBQ\fR
+and \fBA\fR.
 
-The \fBFRONT\fR field represents the front side of a physical card.
+The \fBQ\fR field represents the front side of a physical card.
 It's usually a question or a clue.
-The \fBBACK\fR field represents the back side of a physical card.
-It's usually the answer or information regarding the \fBFRONT\fR field.
+The \fBA\fR field represents the back side of a physical card.
+It's usually the answer or information regarding the \fBQ\fR field.
 
-Cards are separated by blank lines.
-Trailing blank lines of a card are ignored.
+The key and the value are separated by a tab character or a newline
+character.
+Every line in the value which is not on the same line with the key
+must start with a tab character, except for blank lines.
+For blank lines in the value, the leading tab character is optional.
 
-After a card is tested with \fBhardv\fR, two fields \fBPREV\fR and
-\fBNEXT\fR are updated or inserted to indicate the previous quiz time
-and the next scheduled quiz time.
+Cards are separated by blank lines, one or more.
+
+After a card is quizzed with \fBhardv\fR, two fields \fBPREV\fR and
+\fBNEXT\fR are updated (or inserted if they didn't exist) to indicate
+the previous quiz time and the next scheduled quiz time.
 The two fields are date time strings in the format like the following.
 
 .RS
@@ -62,22 +64,26 @@ The two fields are date time strings in the format like the following.
 .fi
 .RE
 
-\fBhardv\fR reads input \fIfile\fRs and filters out cards which are
-scheduled to test earlier than or within today
-(see the \fB-e\fR option).
-The user checks the \fBBACK\fR field and selects whether it can be
-recalled.
+You could modify the \fBPREV\fR and \fBNEXT\fR fields to manually tune
+the quiz time.
 
-There are three choices for a card.
+\fBhardv\fR reads input \fIfile\fRs and filters out cards which are
+scheduled to be quizzed earlier than or within today
+(see the \fB-e\fR option).
+If the card doesn't contain the \fBNEXT\fR field, it will be quizzed
+anyway.
+
+There are three actions for a card the user can execute.
 
 .TP
 1. \fBy\fR
-The user can recall the card;
-The next quiz time for this card will be doubly scheduled.
+The user is able to recall the content;
+The next quiz time for this card will be scheduled at the double further
+time.
 
 .TP
 2. \fBn\fR
-The user can not recall the card;
+The user is not able to recall the content;
 The next quiz time for this card will be scheduled at 24 hours later.
 
 .TP
@@ -85,22 +91,30 @@ The next quiz time for this card will be scheduled at 24 hours later.
 Skip the card;
 Nothing will be updated.
 
+.RE
+
+A card is allowed to contain other fields not mentioned above.
+However, field keys consisting of only uppercase letters are reserved
+for the system.
+They are allowed but not recommended, for specific meanings could be
+assigned to them in further versions.
+
 .SH OPTIONS
 
 .TP
 \fB-e
-Test a card only if the start time of the quiz is not earlier
+Quiz a card only if the start time of the quiz is not earlier
 than the exact scheduled quiz time of the card;
 If this option is not specified, any card whose scheduled quiz time
-is earlier than or within today will be tested.
+is earlier than or within today will be quizzed.
 
 .TP
 \fB-r
-Test cards in a random order.
+Quiz cards in a random order.
 
 .TP
 \fB-n \fIn\fR
-Test at most \fIn\fR cards.
+Quiz at most \fIn\fR cards.
 
 .TP
 \fB-h

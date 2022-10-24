@@ -81,7 +81,7 @@ static void help(FILE *fp)
 	fputs("\n", fp);
 	fputs("-e	enable exact quiz time\n", fp);
 	fputs("-r	randomize the quiz order\n", fp);
-	fputs("-n <n>	test at most <n> cards\n", fp);
+	fputs("-n <n>	quiz at most <n> cards\n", fp);
 	fputs("-h	print this help information\n", fp);
 	fputs("-v	print version and building information\n", fp);
 }
