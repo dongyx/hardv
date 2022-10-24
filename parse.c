@@ -87,13 +87,22 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 
 int writecard(FILE *fp, struct card *card)
 {
+	struct field *field;
+	char *key, *val;
 	int i;
 
 	for (i = 0; i < card->leadnewl; i++)
 		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
-	for (i = 0; i < card->nfield; i++)
-		ECHK(fprintf(fp, "%s%s", card->field[i].key,
-			card->field[i].val) < 0, AESYS, return -1);
+	for (i = 0; i < card->nfield; i++) {
+		field = &card->field[i];
+		key = field->key;
+		val = field->val;
+		ECHK(fprintf(fp, "%s%s", key, val) < 0, AESYS,
+			return -1);
+		if (i < card->nfield - 1
+			&& val[strlen(val) - 1] != '\n')
+			ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
+	}
 	for (i = 0; i < card->trainewl; i++)
 		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
 	return 0;

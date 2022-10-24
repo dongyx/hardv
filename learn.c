@@ -74,7 +74,7 @@ static int isnow(struct card *card, time_t now)
 static int recall(struct card *card, time_t now)
 {
 	const time_t day = 60*60*24;
-	char in[BUFSIZ];
+	char in[BUFSIZ], *ques, *answ;
 	time_t diff, prev, next;
 
 	getprev(card, &prev);
@@ -83,8 +83,16 @@ static int recall(struct card *card, time_t now)
 	getnext(card, &next);
 	if (next < prev || (diff = next - prev) < day)
 		diff = day;
+	ques = getques(card);
+	answ = getansw(card);
+	while (*ques && *ques == '\n')
+		ques++;
+	while (*answ && *answ == '\n')
+		answ++;
 	puts("Q:\n");
-	printf("%s\n", getques(card));
+	printf("%s\n", ques);
+	if (ques[strlen(ques) - 1] != '\n')
+		putchar('\n');
 	fflush(stdout);
 CHECK:
 	fputs("Press <ENTER> to check the answer.\n", stdout);
@@ -98,7 +106,9 @@ CHECK:
 	if (strcmp(in, "\n"))
 		goto CHECK;
 	puts("A:\n");
-	printf("%s\n", getansw(card));
+	printf("%s\n", answ);
+	if (answ[strlen(answ) - 1] != '\n')
+		putchar('\n');
 	fflush(stdout);
 QUERY:
 	fputs("Do you recall? (y/n/s)\n", stdout);
