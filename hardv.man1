@@ -94,7 +94,7 @@ Nothing will be updated.
 .RE
 
 A card is allowed to contain other fields not mentioned above, as long
-as the key consists of alphabets and digits.
+as the key consists of alphabets, digits and underlines.
 However, field keys consisting of only uppercase alphabets are reserved
 for the system.
 They are allowed but not recommended, for specific meanings could be

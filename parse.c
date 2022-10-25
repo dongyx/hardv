@@ -7,8 +7,6 @@
 #include "card.h"
 #include "parse.h"
 
-static int validkey(char *key);
-
 #define INCNLINE(n) do { \
 	ECHK(maxnl - (*nline) < (n), AENLINE, return -1); \
 	(*nline) += (n); \
@@ -117,13 +115,4 @@ int writecard(FILE *fp, struct card *card)
 	for (i = 0; i < card->trainewl; i++)
 		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
 	return 0;
-}
-
-static int validkey(char *key)
-{
-	while (*key && (isalpha(*key) || isdigit(*key)))
-		key++;
-	if (*key)
-		apperr = AEINVKEY;
-	return *key;
 }

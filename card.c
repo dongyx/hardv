@@ -111,6 +111,15 @@ int parsetm(char *s, time_t *tp)
 	return 0;
 }
 
+int validkey(char *key)
+{
+	while (*key && (isalpha(*key) || isdigit(*key) || *key == '_'))
+		key++;
+	if (*key)
+		apperr = AEINVKEY;
+	return *key;
+}
+
 int validfield(struct field *field)
 {
 	time_t t;

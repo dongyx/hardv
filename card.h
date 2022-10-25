@@ -21,6 +21,7 @@ int getnext(struct card *card, time_t *tp);
 int setprev(struct card *card, time_t prev);
 int setnext(struct card *card, time_t next);
 int parsetm(char *s, time_t *tp);
+int validkey(char *key);
 int validfield(struct field *field);
 int validcard(struct card *card);
 
