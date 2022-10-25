@@ -29,7 +29,8 @@ enum {
 	AEINVAL,	/* invalid function arguments */
 	AEPATHSZ,	/* file name too large */
 	AERSVFIELD,	/* no space for reserved fields */
-	AEBACKUP	/* fail to create backup file */
+	AEBACKUP,	/* fail to create backup file */
+	AEINVKEY	/* invalid file key */
 };
 
 #endif

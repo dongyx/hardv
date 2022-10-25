@@ -31,7 +31,7 @@ main.o: main.c version LICENSE
 %.d: %.c
 	@$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
 
-hardv.1: hardv.man1
+hardv.1: hardv.man1 version LICENSE
 	@echo building manpage...
 	@set -e; \
 	cp $< $@; \

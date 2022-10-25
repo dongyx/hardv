@@ -23,7 +23,8 @@ char *aestr(int eno)
 		"invalid function arguments",
 		"file name too large",
 		"no space for reserved fields",
-		"fail to create backup file"
+		"fail to create backup file",
+		"invalid field key"
 	};
 
 	if (!eno)

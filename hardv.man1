@@ -93,8 +93,9 @@ Nothing will be updated.
 
 .RE
 
-A card is allowed to contain other fields not mentioned above.
-However, field keys consisting of only uppercase letters are reserved
+A card is allowed to contain other fields not mentioned above, as long
+as the key consists of alphabets and digits.
+However, field keys consisting of only uppercase alphabets are reserved
 for the system.
 They are allowed but not recommended, for specific meanings could be
 assigned to them in further versions.

@@ -6,11 +6,11 @@
 #include <time.h>
 #include "apperr.h"
 #include "card.h"
-#define TIMEFMT "%Y-%m-%d %H:%M:%S %z"
 #define QUES "Q"
 #define ANSW "A"
-#define NEXT "NEXT"
 #define PREV "PREV"
+#define NEXT "NEXT"
+#define TIMEFMT "%Y-%m-%d %H:%M:%S %z"
 
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
@@ -44,32 +44,6 @@ int setprev(struct card *card, time_t prev)
 int setnext(struct card *card, time_t next)
 {
 	return settime(card, NEXT, next);
-}
-
-int validfield(struct field *field)
-{
-	time_t t;
-
-	if (!strcmp(field->key, PREV) || !strcmp(field->key, NEXT))
-		return parsetm(field->val, &t);
-	return 0;
-}
-
-int validcard(struct card *card)
-{
-	time_t prev, next;
-	int n;
-
-	if (!getques(card) || !getansw(card)) {
-		apperr = AEMFIELD;
-		return -1;
-	}
-	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
-	if (card->nfield - n > NFIELD - 2) {
-		apperr = AERSVFIELD;
-		return -1;
-	}
-	return 0;
 }
 
 static char *getfield(struct card *card, char *key)
@@ -134,5 +108,31 @@ int parsetm(char *s, time_t *tp)
 		return -1;
 	}
 	*tp = mktime(&buf);
+	return 0;
+}
+
+int validfield(struct field *field)
+{
+	time_t t;
+
+	if (!strcmp(field->key, PREV) || !strcmp(field->key, NEXT))
+		return parsetm(field->val, &t);
+	return 0;
+}
+
+int validcard(struct card *card)
+{
+	time_t prev, next;
+	int n;
+
+	if (!getques(card) || !getansw(card)) {
+		apperr = AEMFIELD;
+		return -1;
+	}
+	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
+	if (card->nfield - n > NFIELD - 2) {
+		apperr = AERSVFIELD;
+		return -1;
+	}
 	return 0;
 }

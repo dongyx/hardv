@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #include "apperr.h"
 #include "applim.h"
 #include "card.h"
 #include "parse.h"
+
+static int validkey(char *key);
 
 #define INCNLINE(n) do { \
 	ECHK(maxnl - (*nline) < (n), AENLINE, return -1); \
@@ -49,6 +52,8 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 			sep = strcspn(line, "\n\t");
 			ECHK(sep >= KEYSZ, AEKEYSZ, return -1);
 			strncpy(field->key, line, sep);
+			if (validkey(field->key))
+				return -1;
 			for (i = card->field; i != field; i++)
 				ECHK(!strcmp(field->key, i->key),
 					AEDUPKEY, return -1);
@@ -112,4 +117,13 @@ int writecard(FILE *fp, struct card *card)
 	for (i = 0; i < card->trainewl; i++)
 		ECHK(fputc('\n', fp) == EOF, AESYS, return -1);
 	return 0;
+}
+
+static int validkey(char *key)
+{
+	while (*key && (isalpha(*key) || isdigit(*key)))
+		key++;
+	if (*key)
+		apperr = AEINVKEY;
+	return *key;
 }
