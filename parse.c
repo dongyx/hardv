@@ -40,8 +40,10 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 		} else if (line[0] != '\n') {	/* new field key */
 			ECHK(++card->nfield > NFIELD, AENFIELD,
 				return -1);
-			ECHK(field && validfield(field), apperr,
-				return -1);
+			if (field && validfield(field)) {
+				(*nline)--;
+				return -1;
+			}
 			field = &card->field[card->nfield - 1];
 			val = field->val;
 			sep = strcspn(line, "\n\t");
@@ -79,7 +81,11 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 	}
 	ECHK(ferror(fp), AESYS, return -1);
 	if (card->nfield) {
-		ECHK(validfield(field), apperr, return -1);
+		if (validfield(field)) {
+			if (!feof(fp))
+				(*nline)--;
+			return -1;
+		}
 		ECHK(validcard(card), apperr, return -1);
 	}
 	return card->nfield;
