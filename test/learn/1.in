@@ -1,9 +1,9 @@
-PREV	2022-10-10 16:00:00 +0800
+PREV	2022-10-10 04:00:00 -0400
 Q	The famous C program from a famous book:
 	hello world
 	
 		--K&R
-NEXT	2022-10-11 22:00:00 +0800
+NEXT	2022-10-11 10:00:00 -0400
 A	#include <stdio.h>
 	
 	main()

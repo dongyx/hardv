@@ -8,6 +8,7 @@ for in in *.in; do
 	arg=${in%.in}.arg
 	now=${in%.in}.now
 	cp $in $out
-	<$act HARDV_NOW="`cat $now`" hardv `cat $arg` $out >/dev/null
+	<$act HARDV_NOW="`cat $now`" TZ='UTC-8'\
+		hardv `cat $arg` $out >/dev/null
 	diff -u $ans $out
 done

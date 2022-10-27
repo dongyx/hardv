@@ -60,6 +60,8 @@ static int isnow(struct card *card, time_t now)
 	time_t next;
 
 	getnext(card, &next);
+	if (next <= 0)
+		next = now;
 	if (learnopt->exact)
 		return now >= next;
 	memcpy(&today, localtime(&now), sizeof today);
@@ -76,9 +78,11 @@ static int recall(struct card *card, time_t now)
 	time_t diff, prev, next;
 
 	getprev(card, &prev);
-	if (prev == 0)
+	if (prev <= 0)
 		prev = now;	
 	getnext(card, &next);
+	if (next <= 0)
+		next = now;
 	if (next < prev || (diff = next - prev) < day)
 		diff = day;
 	ques = getques(card);

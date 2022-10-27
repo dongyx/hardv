@@ -8,7 +8,7 @@ hardv - flashcards quiz
 .SH SYNOPSIS
 
 .nf
-\fBhardv\fR [\fIoptions\fR] \fIfile\fR [\fIfile\fR ...]
+\fBhardv\fR [\fIoptions\fR] \fIfile\fR ... 
 \fBhardv\fR \fB-h\fR|\fB-v\fR
 .fi
 
@@ -70,8 +70,14 @@ the quiz time.
 \fBhardv\fR reads input \fIfile\fRs and filters out cards which are
 scheduled to be quizzed earlier than or within today
 (see the \fB-e\fR option).
-If the card doesn't contain the \fBNEXT\fR field, it will be quizzed
-anyway.
+
+If the card doesn't contain the \fBPREV\fR field
+or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
+it will be regarded as the start time of the current quiz.
+
+If the card doesn't contain the \fBNEXT\fR field
+or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
+it will be regarded as the start time of the current quiz.
 
 There are three actions for a card the user can execute.
 
@@ -80,11 +86,18 @@ There are three actions for a card the user can execute.
 The user is able to recall the content;
 The next quiz time for this card will be scheduled at the double further
 time.
+Formally speaking, the new value of the \fBNEXT\fR field will be set to:
+
+\fISTART_TIME\fR + 2*(\fINEXT\fR - \fIPREV\fR)
+
+If \fINEXT\fR - \fIPREV\fR is less than 24 hours,
+it will be regarded as 24 hours.
 
 .TP
 2. \fBn\fR
 The user is not able to recall the content;
-The next quiz time for this card will be scheduled at 24 hours later.
+The next quiz time for this card will be scheduled at 24 hours later
+after the start time of the current quiz.
 
 .TP
 3. \fBs\fR
