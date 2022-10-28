@@ -54,7 +54,6 @@ int dumpctab(char *filename, struct card *cards, int n)
 		apperr = AEBACKUP;
 		goto RET;
 	}
-	ECHK(!(bakfname = backup(filename)), apperr, goto RET);
 	ECHK(!(fp = fopen(filename, "w")), AESYS, goto ULK);
 	for (i = 0; i < n; i++) {
 		ECHK(i && fputc('\n', fp) == EOF, AESYS, goto WERR);
