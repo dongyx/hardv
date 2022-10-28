@@ -10,7 +10,8 @@
 #define ANSW "A"
 #define PREV "PREV"
 #define NEXT "NEXT"
-#define TIMEFMT "%Y-%m-%d %H:%M:%S %z"
+#define TIMEFMT "%Y-%m-%d %H:%M:%S"
+#define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
 
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
@@ -88,7 +89,7 @@ static int settime(struct card *card, char *key, time_t t)
 		apperr = AESYS;
 		return -1;
 	}
-	if (!strftime(buf, sizeof buf, TIMEFMT, lctime)) {
+	if (!strftime(buf, sizeof buf, TIMEFMT " %z", lctime)) {
 		apperr = AEVALSZ;
 		return -1;
 	}
@@ -96,18 +97,32 @@ static int settime(struct card *card, char *key, time_t t)
 	return 0;
 }
 
-int parsetm(char *s, time_t *tp)
+int parsetm(char *s, time_t *clock)
 {
-	struct tm buf;
+	int year, mon, day, hour, min, sec, zhour, zmin;
+	char zsign;
+	struct tm dtime;
 
-	memset(&buf, 0, sizeof buf);
+	memset(&dtime, 0, sizeof dtime);
 	while (*s && isspace(*s))
 		s++;
-	if (!strptime(s, TIMEFMT, &buf)) {
+	if (sscanf(s, TIMEFMT_P, &year, &mon, &day, &hour, &min, &sec,
+		&zsign, &zhour, &zmin) != 9
+		|| zsign != '-' && zsign != '+') {
 		apperr = AETIMEF;
 		return -1;
 	}
-	*tp = mktime(&buf);
+	dtime.tm_year = year - 1900;
+	dtime.tm_mon = mon - 1;
+	dtime.tm_mday = day;
+	dtime.tm_hour = hour;
+	dtime.tm_min = min;
+	dtime.tm_sec = sec;
+	*clock = timegm(&dtime);
+	if (zsign == '+')
+		*clock -= zmin*60 + zhour*3600;
+	else
+		*clock += zmin*60 + zhour*3600;
 	return 0;
 }
 

@@ -1,7 +1,6 @@
 .PHONY: targets clean install test tag
 
 CC = cc
-CFLAGS = -std=c89 -D_POSIX_C_SOURCE=200809L -pedantic
 INSTALL = install
 prefix = /usr/local
 bindir = $(prefix)/bin

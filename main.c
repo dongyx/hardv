@@ -14,7 +14,7 @@ static void help(FILE *fp);
 static void pversion(FILE *fp);
 static void report(char *fname);
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	struct learnopt opt;
 	char *envnow;
