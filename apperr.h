@@ -1,20 +1,12 @@
 #ifndef APPERR_H
 #define APPERR_H
 
-#define ECHK(expr, e, r) do { \
-	if ((expr)) { \
-		apperr = (e); \
-		r; \
-	} \
-} while (0)
-
 extern int apperr;
-
 char *aestr(int eno);
 void aeprint(char *head);
 
 enum {
-	AESYS,	/* system error */
+	AESYS = 1,	/* system error */
 	AENFIELD,	/* too many fields */
 	AEMFIELD,	/* mandatory field not found */
 	AETIMEF,	/* invalid time format */

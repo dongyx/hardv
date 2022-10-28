@@ -22,7 +22,10 @@ int loadctab(char *filename, struct card *cards, int maxn)
 	int ret, ncard, nline, maxnl, n;
 
 	ret = -1;
-	ECHK(!(fp = fopen(filename, "r")), AESYS, goto RET);
+	if (!(fp = fopen(filename, "r"))) {
+		apperr = AESYS;
+		goto RET;
+	}
 	maxnl = NLINE;
 	ncard = lineno = 0;
 	while (ncard < maxn) {
@@ -54,12 +57,18 @@ int dumpctab(char *filename, struct card *cards, int n)
 		apperr = AEBACKUP;
 		goto RET;
 	}
-	ECHK(!(fp = fopen(filename, "w")), AESYS, goto ULK);
-	for (i = 0; i < n; i++) {
-		ECHK(i && fputc('\n', fp) == EOF, AESYS, goto WERR);
-		ECHK(writecard(fp, &cards[i]) == -1, apperr, goto WERR);
+	if (!(fp = fopen(filename, "w"))) {
+		apperr = AESYS;
+		goto ULK;
 	}
-	ECHK(fclose(fp) == EOF, AESYS, goto RET);
+	for (i = 0; i < n; i++)
+		if (i && fputc('\n', fp) == EOF
+			|| writecard(fp, &cards[i]) == -1)
+			goto WERR;
+	if (fclose(fp) == EOF) {
+		apperr = AESYS;
+		goto RET;
+	}
 ULK:	unlink(bakfname);
 	bakfname = NULL;
 	ret = 0;
@@ -77,12 +86,27 @@ static char *backup(char *src)
 
 	ret = NULL;
 	strncpy(dst, "/tmp/hardv.XXXXXX", PATHSZ);
-	ECHK(dst[PATHSZ - 1], AEPATHSZ, goto RET);
-	ECHK((fd[1] = mkstemp(dst)) == -1, AESYS, goto RET);
-	ECHK((fd[0] = open(src, O_RDONLY)) == -1, AESYS, goto CL1); 
+	if (dst[PATHSZ - 1]) {
+		apperr = AEPATHSZ;
+		goto RET;
+	}
+	if ((fd[1] = mkstemp(dst)) == -1) {
+		apperr = AESYS;
+		goto RET;
+	}
+	if ((fd[0] = open(src, O_RDONLY)) == -1) {
+		apperr = AESYS;
+		goto CL1;
+	}
 	while ((n = read(fd[0], buf, sizeof buf)) > 0)
-		 ECHK(write(fd[1], buf, n) != n, AESYS, goto CL0); 
-	ECHK(n < 0, AESYS, goto CL0);
+		 if (write(fd[1], buf, n) != n) {
+		 	apperr = AESYS;
+			goto CL0;
+		}
+	if (n < 0) {
+		apperr = AESYS;
+		goto CL0;
+	}
 	ret = dst;
 CL0:	close(fd[0]);
 CL1:	close(fd[1]);

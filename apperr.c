@@ -9,6 +9,7 @@ char *aestr(int eno)
 {
 	static char *msg[] = {
 		NULL,
+		NULL,
 		"too many fields",
 		"mandaroty field not found",
 		"invalid time format",
@@ -27,9 +28,9 @@ char *aestr(int eno)
 		"invalid field key"
 	};
 
-	if (!eno)
+	if (eno == AESYS)
 		return strerror(errno);
-	if (eno < 0 || eno >= sizeof msg / sizeof msg[0])
+	if (eno < 2 || eno >= sizeof msg / sizeof msg[0])
 		return "undefined application error";
 	return msg[eno];
 }
