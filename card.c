@@ -6,6 +6,7 @@
 #include <time.h>
 #include "apperr.h"
 #include "card.h"
+#define MOD "MOD"
 #define QUES "Q"
 #define ANSW "A"
 #define PREV "PREV"
@@ -16,6 +17,11 @@
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
+
+char *getmod(struct card *card)
+{
+	return getfield(card, MOD);
+}
 
 char *getques(struct card *card)
 {

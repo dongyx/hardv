@@ -3,12 +3,16 @@
 #include <limits.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "card.h"
 #include "ctab.h"
 #include "apperr.h"
 #include "applim.h"
 #include "parse.h"
 #include "learn.h"
+#define SHELL "/bin/sh"
+#define DAY 60*60*24
 
 static struct learnopt *learnopt;
 static char *curfile;
@@ -16,8 +20,14 @@ static struct card cardtab[NCARD];
 static int ncard;
 
 static int isnow(struct card *card, time_t now);
+static int exemod(struct card *card, time_t now);
 static int recall(struct card *card, time_t now);
 static int plancmp(int *i, int *j);
+static int sety(struct card *card, time_t now);
+static int setn(struct card *card, time_t now);
+static void preset(struct card *card, time_t now,
+	time_t *prev, time_t *next, time_t *diff);
+static char *normval(char *s, char *buf, int n);
 
 int learn(char *filename, int now, struct learnopt *opt)
 {
@@ -41,16 +51,21 @@ int learn(char *filename, int now, struct learnopt *opt)
 		}
 	else
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
-	for (i = 0; i < ncard && opt->maxn; i++)
-		if (isnow(&cardtab[plan[i]], now)) {
-			if (opt->any)
-				putchar('\n');
+	for (i = 0; i < ncard && opt->maxn; i++) {
+		card = &cardtab[plan[i]];
+		if (isnow(card, now)) {
+			if (getmod(card)) {
+				if (exemod(card, now) == -1)
+					return -1;
+			} else {
+				if (recall(card, now) == -1)
+					return -1;
+			}
 			opt->any = 1;
-			if (recall(&cardtab[plan[i]], now) == -1)
-				return -1;
 			if (opt->maxn > 0)
 				opt->maxn--;
 		}
+	}
 	return 0;
 }
 
@@ -71,20 +86,63 @@ static int isnow(struct card *card, time_t now)
 		today.tm_mday >= theday.tm_mday;
 }
 
+static int exemod(struct card *card, time_t now)
+{
+	char vbuf[VALSZ];
+	pid_t pid;
+	int stat;
+
+	if ((pid = fork()) == -1) {
+		apperr = AESYS;
+		return -1;
+	}
+	/* child */
+	if (pid == 0) {
+		if (setenv("HARDV_Q",
+			normval(getques(card), vbuf, VALSZ)
+			, 1) == -1
+		|| setenv("HARDV_A",
+			normval(getansw(card), vbuf, VALSZ)
+			, 1) == -1
+		|| setenv("HARDV_FIRST",
+			learnopt->any ? "" : "1"
+			, 1) == -1
+		) {
+			perror("setenv");
+			exit(2);
+		}
+		if (execl(SHELL, SHELL, "-c",
+			normval(getmod(card), vbuf, VALSZ)
+			, NULL) == -1
+		) {
+			apperr = AESYS;
+			exit(2);
+		}
+	}
+	/* parent */
+	if (waitpid(pid, &stat, 0) != pid) {
+		apperr = AESYS;
+		return -1;
+	}
+	switch (WEXITSTATUS(stat)) {
+	case 0:
+		if (sety(card, now) == -1)
+			return -1;
+		break;
+	case 1:
+		if (setn(card, now) == -1)
+			return -1;
+		break;
+	}
+	return 0;
+}
+
 static int recall(struct card *card, time_t now)
 {
-	const time_t day = 60*60*24;
 	char in[BUFSIZ], *ques, *answ;
-	time_t diff, prev, next;
 
-	getprev(card, &prev);
-	if (prev <= 0)
-		prev = now;	
-	getnext(card, &next);
-	if (next <= 0)
-		next = now;
-	if (next < prev || (diff = next - prev) < day)
-		diff = day;
+	if (learnopt->any)
+		putchar('\n');
 	ques = getques(card);
 	answ = getansw(card);
 	while (*ques && *ques == '\n')
@@ -125,16 +183,12 @@ QUERY:
 		goto QUERY;
 	switch (in[0]) {
 	case 'y':
-		if (setprev(card, now)) return -1;
-		if (setnext(card, now + 2*diff)) return -1;
-		if (dumpctab(curfile, cardtab, ncard)) return -1;
+		if (sety(card, now) == -1)
+			return -1;
 		break;
 	case 'n':
-		if (setprev(card, now)) return -1;
-		if (setnext(card, now + day)) return -1;
-		if (dumpctab(curfile, cardtab, ncard)) return -1;
-		break;
-	case 's':
+		if (setn(card, now) == -1)
+			return -1;
 		break;
 	}
 	return 0;
@@ -151,4 +205,54 @@ static int plancmp(int *i, int *j)
 	if (*i < *j) return -1;
 	if (*i > *j) return 1;
 	return 0;
+}
+
+static int sety(struct card *card, time_t now)
+{
+	time_t diff, prev, next;
+
+	preset(card, now, &prev, &next, &diff);
+	if (setprev(card, now)) return -1;
+	if (setnext(card, now + 2*diff)) return -1;
+	if (dumpctab(curfile, cardtab, ncard)) return -1;
+	return 0;
+}
+
+static int setn(struct card *card, time_t now)
+{
+	time_t diff, prev, next;
+
+	preset(card, now, &prev, &next, &diff);
+	if (setprev(card, now)) return -1;
+	if (setnext(card, now + DAY)) return -1;
+	if (dumpctab(curfile, cardtab, ncard)) return -1;
+	return 0;
+}
+
+static void preset(struct card *card, time_t now,
+	time_t *prev, time_t *next, time_t *diff)
+{
+	getprev(card, prev);
+	if (*prev <= 0)
+		*prev = now;	
+	getnext(card, next);
+	if (*next <= 0)
+		*next = now;
+	if (*next < *prev || (*diff = *next - *prev) < DAY)
+		*diff = DAY;
+}
+
+static char *normval(char *s, char *buf, int n)
+{
+	char *sp, *bp;
+
+	while (*s == '\n')
+		s++;
+	for (sp = s, bp = buf; bp != &buf[n] && *sp; sp++)
+		if (*sp != '\t' || sp > s && sp[-1] != '\n')
+			*bp++ = *sp;
+	if (bp > buf && bp[-1] == '\n')
+		bp--;
+	*bp = '\0';
+	return buf;
 }

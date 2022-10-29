@@ -73,12 +73,31 @@ scheduled to be quizzed earlier than or within today
 
 If the card doesn't contain the \fBPREV\fR field
 or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
-it will be regarded as the start time of the current quiz.
+it will be reset to the start time of the current quiz.
 
 If the card doesn't contain the \fBNEXT\fR field
 or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
-it will be regarded as the start time of the current quiz.
+it will be reset to the start time of the current quiz.
 
+If the card doesn't contain the \fBMOD\fR field,
+the standard quiz procedure is used. 
+(see the \fISTANDARD QUIZ PROCEDURE\fR section)
+
+Otherwise, the customized quiz procedure is used. 
+(see the \fICUSTOMIZED QUIZ PROCEDURE\fR section)
+
+A card is allowed to contain other fields not mentioned above, as long
+as the key consists of alphabets, digits and underlines.
+However, field keys consisting of only uppercase alphabets are reserved
+for the system.
+They are allowed but not recommended, for specific meanings could be
+assigned to them in further versions.
+
+.SH STANDARD QUIZ PROCEDURE
+
+\fBhardv\fR prints the content of the \fBQ\fR field.
+The user tries to recall the corresponding \fBA\fR field
+and asks \fBhardv\fR to print it.
 There are three actions for a card the user can execute.
 
 .TP
@@ -91,7 +110,7 @@ Formally speaking, the new value of the \fBNEXT\fR field will be set to:
 \fISTART_TIME\fR + 2*(\fINEXT\fR - \fIPREV\fR)
 
 If \fINEXT\fR - \fIPREV\fR is less than 24 hours,
-it will be regarded as 24 hours.
+it will be reset to 24 hours.
 
 .TP
 2. \fBn\fR
@@ -104,14 +123,38 @@ after the start time of the current quiz.
 Skip the card;
 Nothing will be updated.
 
+.SH CUSTOMIZED QUIZ PROCEDURE
+
+If the card contains the \fBMOD\fR field,
+the customized quiz procedure is used.
+The value of the \fBMOD\fR field is a shell script.
+\fBhardv\fR executes the script by calling \fB/bin/sh -c\fR
+and sets the following environment variables:
+
+.TP
+\fBHARDV_Q\fR
+the content of the \fBQ\fR field
+
+.TP
+\fBHARDV_A\fR
+the content of the \fBA\fR field
+
+.TP
+\fBHARDV_FIRST\fR
+If the card is the first quizzed card in the current quiz,
+it is set to \fB1\fR.
+Otherwise, it's set to the empty string.
+
 .RE
 
-A card is allowed to contain other fields not mentioned above, as long
-as the key consists of alphabets, digits and underlines.
-However, field keys consisting of only uppercase alphabets are reserved
-for the system.
-They are allowed but not recommended, for specific meanings could be
-assigned to them in further versions.
+If the mod script exits with status \fB0\fR, the effect is equivalent to
+take the \fBy\fR action in the standard quiz procedure.
+
+If the mod script exits with status \fB1\fR, the effect is equivalent to
+take the \fBn\fR action in the standard quiz procedure.
+
+Otherwise, the effect is equivalent to
+take the \fBs\fR action in the standard quiz procedure.
 
 .SH OPTIONS
 
@@ -124,7 +167,7 @@ is earlier than or within today will be quizzed.
 
 .TP
 \fB-r
-Quiz cards in a random order.
+Quiz cards within a file in a random order.
 
 .TP
 \fB-n \fIn\fR
@@ -136,11 +179,11 @@ Print the brief help message.
 
 .TP
 \fB-v
-Print the version and building information.
+Print the version and building arguments.
 
 .SH LIMITATION
 
-Running \fBhardv -v\fR prints several building information
+Running \fBhardv -v\fR prints several building arguments
 which determine the limitation of data.
 
 .TP

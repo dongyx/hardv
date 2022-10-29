@@ -75,15 +75,15 @@ int main(int argc, char **argv)
 
 static void help(FILE *fp)
 {
-	fputs("hardv [options] file [file ...]\n", fp);
+	fputs("usage: hardv [options] file ...\n", fp);
 	fputs("\n", fp);
 	fputs("options\n", fp);
 	fputs("\n", fp);
 	fputs("-e	enable exact quiz time\n", fp);
-	fputs("-r	randomize the quiz order\n", fp);
+	fputs("-r	randomize the quiz order within a file\n", fp);
 	fputs("-n <n>	quiz at most <n> cards\n", fp);
 	fputs("-h	print this help information\n", fp);
-	fputs("-v	print version and building information\n", fp);
+	fputs("-v	print version and building arguments\n", fp);
 }
 
 static void pversion(FILE *fp)

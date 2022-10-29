@@ -14,6 +14,7 @@ struct card {
 	struct field field[NFIELD];
 };
 
+char *getmod(struct card *card);
 char *getques(struct card *card);
 char *getansw(struct card *card);
 int getprev(struct card *card, time_t *tp);

@@ -8,5 +8,6 @@
 #define NFIELD	8
 #define KEYSZ	8
 #define VALSZ	1024
+#define MODSZ	1024
 
 #endif

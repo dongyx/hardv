@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -e
+for i in *.in; do
+	ans=${i%.in}.ans
+	act=${i%.in}.act
+	out=${i%.in}.out.tmp
+	cp $i $out
+	cat $act | \
+	HARDV_NOW='2022-10-29 22:12:28 +0800' TZ='UTC-8' \
+		hardv $out >/dev/null
+	diff -u $ans $out
+done
