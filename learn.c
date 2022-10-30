@@ -14,6 +14,11 @@
 #define SHELL "/bin/sh"
 #define DAY 60*60*24
 
+#define CAVEAT \
+	"* DO NOT EDIT INPUT FILES OR RUN ANOTHER INSTANCE OF HARDV " \
+	"ON ANY OF THE SAME\n" \
+	"* FILES BEFORE THIS INSTANCE EXITS.\n"
+
 static struct learnopt *learnopt;
 static char *curfile;
 static struct card cardtab[NCARD];
@@ -54,6 +59,8 @@ int learn(char *filename, int now, struct learnopt *opt)
 	for (i = 0; i < ncard && opt->maxn; i++) {
 		card = &cardtab[plan[i]];
 		if (isnow(card, now)) {
+			if (!opt->any)
+				puts(CAVEAT);
 			if (getmod(card)) {
 				if (exemod(card, now) == -1)
 					return -1;
