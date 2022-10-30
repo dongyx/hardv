@@ -166,7 +166,7 @@ to a `hardv` mod.
 
 See the man page `hardv(1)` for detail about how to implement a mod.
 
-INSTALLATION
+Installation
 ------------
 
 - Chose a version from
@@ -208,7 +208,7 @@ Cards are separated by blank lines, one or more.
 See the man page `hardv(1)`
 for the full description of the input format.
 
-USAGE
+Usage
 -----
 
 Executing `hardv -h` prints a brief help.
