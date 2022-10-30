@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 	int ch;
 
 	srand(time(NULL));
-	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM, NULL);
+	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM, SIGTSTP, 0);
 	if ((envnow = getenv("HARDV_NOW"))) {
 		if (parsetm(envnow, &now) == -1) {
 			aeprint(envnow);
