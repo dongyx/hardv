@@ -179,7 +179,7 @@ release note.
 - Execute:
 
 	~~~
-	$ make test
+	$ make
 	$ sudo make install
 	~~~
 
