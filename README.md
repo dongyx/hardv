@@ -17,7 +17,7 @@ You may even request `hardv` to open the editor and send the content you
 write to an online judge system of algorithmic problems,
 and schedule the next quiz time by the judging result.**
 
-But first of all, let's see the standard quiz of hardv.
+But first of all, let's see the standard quiz of `hardv`.
 
 Suppose we have a file `input.fc` consists of flashcards.
 (See the [*Input Format*](#input-format) section)
@@ -191,11 +191,6 @@ Input Format
 
 A card is a key-value structure contains at least two fields `Q`
 and `A`.
-
-The `Q` field represents the front side of a physical card.
-It's usually a question or a clue.
-The `A` field represents the back side of a physical card.
-It's usually the answer or information regarding the `Q` field.
 
 The key and the value are separated by a tab character or a newline
 character.
