@@ -166,3 +166,20 @@ int validcard(struct card *card)
 	}
 	return 0;
 }
+
+char *normval(char *s, char *buf, int n)
+{
+	char *sp, *bp;
+
+	while (*s == '\n')
+		s++;
+	for (sp = s, bp = buf; bp != &buf[n] && *sp; sp++)
+		if (*sp != '\t' || sp > s && sp[-1] != '\n')
+			*bp++ = *sp;
+	if (bp == &buf[n])
+		return NULL;
+	if (bp > buf && bp[-1] == '\n')
+		bp--;
+	*bp = '\0';
+	return buf;
+}

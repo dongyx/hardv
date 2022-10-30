@@ -32,7 +32,6 @@ static int sety(struct card *card, time_t now);
 static int setn(struct card *card, time_t now);
 static void preset(struct card *card, time_t now,
 	time_t *prev, time_t *next, time_t *diff);
-static char *normval(char *s, char *buf, int n);
 
 int learn(char *filename, int now, struct learnopt *opt)
 {
@@ -247,19 +246,4 @@ static void preset(struct card *card, time_t now,
 		*next = now;
 	if (*next < *prev || (*diff = *next - *prev) < DAY)
 		*diff = DAY;
-}
-
-static char *normval(char *s, char *buf, int n)
-{
-	char *sp, *bp;
-
-	while (*s == '\n')
-		s++;
-	for (sp = s, bp = buf; bp != &buf[n] && *sp; sp++)
-		if (*sp != '\t' || sp > s && sp[-1] != '\n')
-			*bp++ = *sp;
-	if (bp > buf && bp[-1] == '\n')
-		bp--;
-	*bp = '\0';
-	return buf;
 }

@@ -25,5 +25,6 @@ int parsetm(char *s, time_t *tp);
 int validkey(char *key);
 int validfield(struct field *field);
 int validcard(struct card *card);
+char *normval(char *s, char *buf, int n);
 
 #endif
