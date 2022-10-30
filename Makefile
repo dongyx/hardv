@@ -53,7 +53,7 @@ test: $(targets)
 	echo all tests passed;
 
 clean:
-	@rm -rf $(targets) $(deps) $(objs)
+	@rm -rf $(targets) $(deps) $(objs) *.tmp
 	@for i in test/*; do \
 		cd $$i;	\
 		./clean; \
