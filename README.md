@@ -100,9 +100,10 @@ with the following content and make it executable.
 ~~~shell
 #!/bin/sh
 
-# Print a blank line before quizzing a card, except the first quizzed card
-! [ "$HARDV_FIRST" ] && printf '\n'
-
+# Print a blank line before quizzing a card, except the first
+if ! [ "$HARDV_FIRST" ]; then
+	printf '\n'
+fi
 printf 'Q: %s\n' "$HARDV_Q"	# Print the question
 printf '(recite) A: '		# Print the prompt
 read a				# Read the user-input line to variable a
@@ -111,10 +112,10 @@ if [ "$a" = "!" ]; then
 fi
 if [ "$a" = "$HARDV_A" ]; then
 	echo 'Correct!'
-	exit 0;			# the user is able to recall
+	exit 0;			# The user is able to recall
 fi
 printf 'Wrong! The answer is: %s\n' "$HARDV_A"
-exit 1;				# the user is unable to recall
+exit 1;				# The user is unable to recall
 ~~~
 
 For the card we want to enable this mod,
@@ -161,8 +162,8 @@ demonstrated by the following.
 	Q	hex(128) = ?
 	A	0x80
 
-This could be very handy if you want to wrap a existed program
-to a `hardv` mod.
+This could be very handy if you want to wrap existed programs to a
+`hardv` mod.
 
 See the man page `hardv(1)` for detail about how to implement a mod.
 
