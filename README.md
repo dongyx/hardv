@@ -20,7 +20,6 @@ and schedule the next quiz time by the judging result.**
 But first of all, let's see the standard quiz of `hardv`.
 
 Suppose we have a file `input.fc` consists of flashcards.
-(See the [*Input Format*](#input-format) section)
 
 	$ cat input.fc
 
@@ -40,6 +39,11 @@ Suppose we have a file `input.fc` consists of flashcards.
 	Q	hex(32768) = ?
 	A
 		0x8000
+
+Cards are separated by blank lines.
+The key and value of a field in a card are separated by a tab character.
+Subsequent lines in the value are indented by a tab character.
+(See the [*Input Format*](#input-format) section)
 
 We could use `hardv` to run a quiz.
 	
