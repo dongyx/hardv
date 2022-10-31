@@ -69,9 +69,9 @@ int dumpctab(char *filename, struct card *cards, int n)
 		apperr = AESYS;
 		goto RET;
 	}
+	ret = 0;
 ULK:	unlink(bakfname);
 	bakfname = NULL;
-	ret = 0;
 RET:	siglock(SIGLOCK_UNLOCK);
 	return ret;
 WERR:	fclose(fp);
