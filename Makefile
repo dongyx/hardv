@@ -47,6 +47,7 @@ test: $(targets)
 	for i in test/*; do \
 		cd $$i;	\
 		echo running test $$i...; \
+		chmod +x run; \
 		./run; \
 		cd ../..; \
 	done; \
