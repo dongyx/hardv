@@ -171,7 +171,7 @@ See the man page `hardv(1)` for detail about how to implement a mod.
 Installation
 ------------
 
-- Chose a version from
+- Choose a version from
 the [release page](https://github.com/dongyx/hardv/releases);
 The latest is always recommended unless otherwise noted in the
 release note.
@@ -185,7 +185,7 @@ release note.
 	$ sudo make install
 	~~~
 
-`make install` copies file to `/usr/local` by default.
+`make install` copies files to `/usr/local` by default.
 The man page `hardv(1)` is shipped with the installation.
 
 Input Format

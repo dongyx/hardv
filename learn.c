@@ -32,7 +32,7 @@ static int sety(struct card *card, time_t now);
 static int setn(struct card *card, time_t now);
 static void preset(struct card *card, time_t now,
 	time_t *prev, time_t *next, time_t *diff);
-char *indent(char *s, char *buf, int n);
+int pindent(char *s);
 
 int learn(char *filename, int now, struct learnopt *opt)
 {
@@ -146,16 +146,15 @@ static int exemod(struct card *card, time_t now)
 
 static int recall(struct card *card, time_t now)
 {
-	char in[BUFSIZ], ques[VALSZ], answ[VALSZ], buf[VALSZ];
+	char in[BUFSIZ], ques[VALSZ], answ[VALSZ];
 
 	if (learnopt->any)
 		putchar('\n');
-	indent(normval(getques(card), buf, VALSZ), ques, VALSZ);
-	indent(normval(getansw(card), buf, VALSZ), answ, VALSZ);
+	normval(getques(card), ques, VALSZ);
+	normval(getansw(card), answ, VALSZ);
 	puts("Q:\n");
-	printf("%s\n", ques);
-	if (ques[strlen(ques) - 1] != '\n')
-		putchar('\n');
+	pindent(ques);
+	puts("\n");
 	fflush(stdout);
 CHECK:
 	fputs("Press <ENTER> to check the answer.\n", stdout);
@@ -169,9 +168,8 @@ CHECK:
 	if (strcmp(in, "\n"))
 		goto CHECK;
 	puts("A:\n");
-	printf("%s\n", answ);
-	if (answ[strlen(answ) - 1] != '\n')
-		putchar('\n');
+	pindent(answ);
+	puts("\n");
 	fflush(stdout);
 QUERY:
 	fputs("Do you recall? (y/n/s)\n", stdout);
@@ -245,18 +243,14 @@ static void preset(struct card *card, time_t now,
 		*diff = DAY;
 }
 
-char *indent(char *s, char *buf, int n)
+int pindent(char *s)
 {
-	char *sp, *bp;
+	char *sp;
 
-	for (sp = s, bp = buf; *sp && bp < &buf[n]; sp++) {
+	for (sp = s; *sp ; sp++) {
 		if (sp == s || sp[-1] == '\n')
-			*bp++ = '\t';
-		if (bp < &buf[n])
-			*bp++ = *sp;
+			putchar('\t');
+		putchar(*sp);
 	}
-	if (bp >= &buf[n])
-		return NULL;
-	*bp = '\0';
-	return buf;
+	return sp - s;
 }

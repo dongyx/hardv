@@ -60,7 +60,7 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 		}
 		if (line[0] == '%') {
 			/* end of card */
-			strncpy(card->sep, line, sizeof card->sep);
+			strncpy(card->sep, line, LINESZ);
 			break;
 		} else if (line[0] == '\t' || line[0] == '\n') {
 			/* successive value line */
@@ -117,6 +117,7 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 #undef INCNLINE
 #undef CHK_FIELD
 #undef CHK_VALSZ
+#undef BACK_LINENO
 }
 
 int writecard(FILE *fp, struct card *card)

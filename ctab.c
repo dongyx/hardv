@@ -83,7 +83,7 @@ WERR:	fclose(fp);
 static char *backup(char *src)
 {
 	static char dst[PATHSZ];
-	char *ret, buf[BUFSIZ];
+	char *ret, buf[8192];
 	int fd[2], n;
 
 	ret = NULL;

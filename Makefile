@@ -73,6 +73,12 @@ tag:
 		echo workspace not clean; \
 		exit 1; \
 	fi; \
+	if grep dev version; then \
+		echo this is a dev version; \
+		exit 1; \
+	fi; \
+	printf 'tag: '; \
+	cat version; \
 	git tag "v$$(cat version)"
 
 arch:

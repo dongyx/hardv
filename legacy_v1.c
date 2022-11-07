@@ -7,9 +7,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "apperr.h"
-#include "applim.h"
 #include "siglock.h"
 #include "legacy_v1.h"
+#define PATHSZ	1024
+#define NLINE	32767
+#define LINESZ	1024
+#define NCARD	32767
+#define NFIELD	8
+#define KEYSZ	8
+#define VALSZ	1024
 #define MOD "MOD"
 #define QUES "Q"
 #define ANSW "A"
@@ -17,6 +23,16 @@
 #define NEXT "NEXT"
 #define TIMEFMT "%Y-%m-%d %H:%M:%S"
 #define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
+
+struct field_v1 {
+	char key[KEYSZ];
+	char val[VALSZ];
+};
+
+struct card_v1 {
+	int nfield, leadnewl, trainewl;
+	struct field_v1 field[NFIELD];
+};
 
 static char *getfield_v1(struct card_v1 *card, char *key);
 static int gettime_v1(struct card_v1 *card, char *key, time_t *tp);
