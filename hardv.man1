@@ -51,7 +51,7 @@ must start with a tab character, except for blank lines.
 For blank lines in the value, the leading tab character is optional.
 
 Cards are separated by a line starting with the percent sign (\fB%\fR).
-`%%` is recommended.
+\fB%%\fR on a line by it self is recommended.
 
 After a card is quizzed with \fBhardv\fR, two fields \fBPREV\fR and
 \fBNEXT\fR are updated (or inserted if they didn't exist) to indicate
