@@ -12,6 +12,7 @@ struct field {
 struct card {
 	int nfield, leadnewl, trainewl;
 	struct field field[NFIELD];
+	char sep[LINESZ];
 };
 
 char *getmod(struct card *card);

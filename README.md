@@ -2,7 +2,7 @@ hardv
 =====
 
 *Any news about this project would be published on
-[my Twitter](https://twitter.com/dyx1970)*
+[my Twitter](https://twitter.com/dongyx2)*
 
 `hardv` is a highly extendable flashcard quiz app for UNIX terminals,
 written in plain C.
@@ -25,8 +25,10 @@ Suppose we have a file `input.fc` consists of flashcards.
 
 	Q	hex(128) = ?
 	A	0x80
-
-
+	%%
+	Q	hex(32768) = ?
+	A	0x8000
+	%%
 	Q	the most famous C program from K&R, second edition
 	A	#include <stdio.h>
 		
@@ -35,12 +37,7 @@ Suppose we have a file `input.fc` consists of flashcards.
 			printf("hello world\\n");
 		}
 
-
-	Q	hex(32768) = ?
-	A
-		0x8000
-
-Cards are separated by blank lines.
+Cards are separated by `%%` on a line by itself.
 The key and value of a field in a card are separated by a tab character.
 Subsequent lines in the value are indented by a tab character.
 (See the [*Input Format*](#input-format) section)
@@ -131,7 +128,7 @@ we add the `MOD` field with the value `recite`.
 	MOD	recite
 	Q	hex(128) = ?
 	A	0x80
-
+	%%
 	MOD	recite
 	Q	hex(32768) = ?
 	A	0x8000
@@ -203,7 +200,9 @@ Every line in the value which is not on the same line with the key
 must start with a tab character, except for blank lines.
 For blank lines in the value, the leading tab character is optional.
 
-Cards are separated by blank lines, one or more.
+Cards are typically separated by `%%` or `%` on a line by itself.
+In fact, any line starting with `%` is seen as a card separator,
+but `%%` is recommended.
 
 See the man page `hardv(1)`
 for the full description of the input format.
@@ -215,3 +214,16 @@ Executing `hardv -h` prints a brief help.
 
 Full description is documented in the man page `hardv(1)`.
 Typing `man hardv` to read.
+
+Migration from 1.x
+------------------
+
+`hardv` 2.0.0 is a breaking change from 1.x.
+The file format is not compatible.
+
+Thus `hardv` provides the `-1` option to convert old files.
+
+	$ hardv -1 a.fc b.fc
+
+It in-place updates the old files to the new format.
+**Backing up the old files before updating is strongly recommend.**

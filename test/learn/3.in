@@ -19,7 +19,7 @@ A
 		printf("hello, world\n");
 	}
 
-
+%
 
 
 NEXT	2023-08-11 12:00:00 +0800
@@ -27,7 +27,7 @@ Q
 	hex(32768) = ?
 A	0x8000
 
-
+%
 Q
 	
 	the reliable idiom of write()
@@ -51,11 +51,11 @@ A	int rwrite(int fd, void *buf, int n)
 		}
 		return n
 	}
-
+%
 PREV	2008-03-02 13:27:09 +0800
 Q	hello
 A	hi
-
+%
 PREV
 
 	2013-09-10 00:12:32 +0800

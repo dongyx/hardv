@@ -7,6 +7,8 @@
 #include "card.h"
 #include "parse.h"
 
+int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
+{
 #define INCNLINE(n) do { \
 	if (maxnl - (*nline) < (n)) { \
 		apperr = AENLINE; \
@@ -29,10 +31,13 @@
 	} \
 } while (0)
 
-int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
-{
+#define BACK_LINENO() do { \
+	while (val > field->val && *--val == '\n') \
+		(*nline)--; \
+} while (0)
+
 	char line[LINESZ], *val;
-	int n, sep, nblank, ch;
+	int n, sep, ch, fsz;
 	struct field *field, *i;
 
 	memset(card, 0, sizeof *card);
@@ -53,18 +58,24 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 			apperr = AELINESZ;
 			return -1;
 		}
-		if (line[0] == '\t') {	/* successive value line */
+		if (line[0] == '%') {
+			/* end of card */
+			strncpy(card->sep, line, sizeof card->sep);
+			break;
+		} else if (line[0] == '\t' || line[0] == '\n') {
+			/* successive value line */
 			CHK_FIELD();
 			CHK_VALSZ(n);
 			val = stpcpy(val, line);
-		} else if (line[0] != '\n') {	/* new field key */
+		} else {
+			/* new field */
 			if (card->nfield >= NFIELD) {
 				apperr = AENFIELD;
 				return -1;
 			}
 			card->nfield++;
 			if (field && validfield(field)) {
-				(*nline)--;
+				BACK_LINENO();
 				return -1;
 			}
 			field = &card->field[card->nfield - 1];
@@ -86,32 +97,6 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 				continue;
 			CHK_VALSZ(n - sep);
 			val = stpcpy(val, &line[sep]);
-		} else {	/* blank line */
-			if (ungetc('\n', fp) != '\n') {
-				apperr = AESYS;
-				return -1;
-			}
-			nblank = 0;
-			(*nline)--;
-			while ((ch = fgetc(fp)) == '\n') {
-				INCNLINE(1);
-				nblank++;
-			}
-			if (ungetc(ch, fp) != ch) {
-				apperr = AESYS;
-				return -1;
-			}
-			if (ch != '\t') {
-				card->trainewl = nblank;
-				if (ch != EOF)
-					card->trainewl--;
-				break;
-			}
-			CHK_FIELD();
-			CHK_VALSZ(nblank);
-			while (nblank-- > 0)
-				*val++ = '\n';
-			*val = '\0';
 		}
 	}
 	if (ferror(fp)) {
@@ -121,19 +106,22 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 	if (card->nfield) {
 		if (validfield(field)) {
 			if (!feof(fp))
-				(*nline)--;
+				BACK_LINENO();
 			return -1;
 		}
 		if (validcard(card))
 			return -1;
 	}
 	return card->nfield;
+
+#undef INCNLINE
+#undef CHK_FIELD
+#undef CHK_VALSZ
 }
 
 int writecard(FILE *fp, struct card *card)
 {
 	struct field *field;
-	char *key, *val;
 	int i;
 
 	for (i = 0; i < card->leadnewl; i++)
@@ -143,23 +131,10 @@ int writecard(FILE *fp, struct card *card)
 		}
 	for (i = 0; i < card->nfield; i++) {
 		field = &card->field[i];
-		key = field->key;
-		val = field->val;
-		if (fprintf(fp, "%s%s", key, val) < 0) {
+		if (fprintf(fp, "%s%s", field->key, field->val) < 0) {
 			apperr = AESYS;
 			return -1;
 		}
-		if (i < card->nfield - 1
-			&& val[strlen(val) - 1] != '\n')
-			if (fputc('\n', fp) == EOF) {
-				apperr = AESYS;
-				return -1;
-			}
 	}
-	for (i = 0; i < card->trainewl; i++)
-		if (fputc('\n', fp) == EOF) {
-			apperr = AESYS;
-			return -1;
-		}
 	return 0;
 }

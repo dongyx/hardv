@@ -32,6 +32,7 @@ static int sety(struct card *card, time_t now);
 static int setn(struct card *card, time_t now);
 static void preset(struct card *card, time_t now,
 	time_t *prev, time_t *next, time_t *diff);
+char *indent(char *s, char *buf, int n);
 
 int learn(char *filename, int now, struct learnopt *opt)
 {
@@ -145,16 +146,12 @@ static int exemod(struct card *card, time_t now)
 
 static int recall(struct card *card, time_t now)
 {
-	char in[BUFSIZ], *ques, *answ;
+	char in[BUFSIZ], ques[VALSZ], answ[VALSZ], buf[VALSZ];
 
 	if (learnopt->any)
 		putchar('\n');
-	ques = getques(card);
-	answ = getansw(card);
-	while (*ques && *ques == '\n')
-		ques++;
-	while (*answ && *answ == '\n')
-		answ++;
+	indent(normval(getques(card), buf, VALSZ), ques, VALSZ);
+	indent(normval(getansw(card), buf, VALSZ), answ, VALSZ);
 	puts("Q:\n");
 	printf("%s\n", ques);
 	if (ques[strlen(ques) - 1] != '\n')
@@ -246,4 +243,20 @@ static void preset(struct card *card, time_t now,
 		*next = now;
 	if (*next < *prev || (*diff = *next - *prev) < DAY)
 		*diff = DAY;
+}
+
+char *indent(char *s, char *buf, int n)
+{
+	char *sp, *bp;
+
+	for (sp = s, bp = buf; *sp && bp < &buf[n]; sp++) {
+		if (sp == s || sp[-1] == '\n')
+			*bp++ = '\t';
+		if (bp < &buf[n])
+			*bp++ = *sp;
+	}
+	if (bp >= &buf[n])
+		return NULL;
+	*bp = '\0';
+	return buf;
 }

@@ -9,6 +9,7 @@
 #include "apperr.h"
 #include "applim.h"
 #include "learn.h"
+#include "legacy_v1.h"
 
 static void help(FILE *fp);
 static void pversion(FILE *fp);
@@ -19,7 +20,7 @@ int main(int argc, char **argv)
 	struct learnopt opt;
 	char *envnow;
 	time_t now;
-	int ch;
+	int ch, conv1;
 
 	srand(time(NULL));
 	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM, SIGTSTP, 0);
@@ -32,8 +33,12 @@ int main(int argc, char **argv)
 		now = time(NULL);
 	memset(&opt, 0, sizeof opt);
 	opt.maxn = -1;
-	while ((ch = getopt(argc, argv, "hvern:")) != -1)
+	conv1 = 0;
+	while ((ch = getopt(argc, argv, "1hvern:")) != -1)
 		switch (ch) {
+		case '1':
+			conv1 = 1;
+			break;
 		case 'e':
 			opt.exact = 1;
 			break;
@@ -64,7 +69,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	while (*argv) {
-		if (learn(*argv, now, &opt) == -1) {
+		if (conv1) {
+			if (conv_1to2(*argv) == -1) {
+				report(*argv);
+				return 1;
+			}
+		}
+		else if (learn(*argv, now, &opt) == -1) {
 			report(*argv);
 			return 1;
 		}
@@ -75,13 +86,18 @@ int main(int argc, char **argv)
 
 static void help(FILE *fp)
 {
-	fputs("usage: hardv [options] file ...\n", fp);
+	fputs("usage:\n", fp);
+	fputs("\thardv [options] file ...\n", fp);
+	fputs("\thardv -1 file ...\n", fp);
+	fputs("\thardv -h|-v\n", fp);
 	fputs("\n", fp);
 	fputs("options\n", fp);
 	fputs("\n", fp);
 	fputs("-e	enable exact quiz time\n", fp);
 	fputs("-r	randomize the quiz order within a file\n", fp);
 	fputs("-n <n>	quiz at most <n> cards\n", fp);
+	fputs("-1	convert the file in the 1.x format to the "
+		"new format\n", fp);
 	fputs("-h	print this help information\n", fp);
 	fputs("-v	print version and building arguments\n", fp);
 }
@@ -97,6 +113,7 @@ static void pversion(FILE *fp)
 	fprintf(fp, "NFIELD:	%d\n", NFIELD);
 	fprintf(fp, "KEYSZ:	%d\n", KEYSZ);
 	fprintf(fp, "VALSZ:	%d\n", VALSZ);
+	fprintf(fp, "PATHSZ:	%d\n", PATHSZ);
 }
 
 static void report(char *fname)

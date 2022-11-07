@@ -89,7 +89,11 @@ static int settime(struct card *card, char *key, time_t t)
 			apperr = AEKEYSZ;
 			return -1;
 		}
-		strcpy(card->field[card->nfield++].key, key);
+		memmove(&card->field[1], &card->field[0],
+			card->nfield * sizeof card->field[0]);
+		strcpy(card->field[0].key, key);
+		card->nfield++;
+		i = 0;
 	}
 	if (!(lctime = localtime(&t))) {
 		apperr = AESYS;
@@ -178,7 +182,7 @@ char *normval(char *s, char *buf, int n)
 			*bp++ = *sp;
 	if (bp == &buf[n])
 		return NULL;
-	if (bp > buf && bp[-1] == '\n')
+	while (bp > buf && bp[-1] == '\n')
 		bp--;
 	*bp = '\0';
 	return buf;

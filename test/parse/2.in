@@ -8,10 +8,10 @@ A	#include <stdio.h>
 	{
 		printf("hello, world\n");
 	}
-
+%%
 Q	hex(32768) = ?
 A	0x8000
-
+%%
 Q	the reliable idiom of write()
 	
 	/* int rwrite(int fd, void *buf, int n) */

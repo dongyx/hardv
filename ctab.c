@@ -61,10 +61,12 @@ int dumpctab(char *filename, struct card *cards, int n)
 		apperr = AESYS;
 		goto ULK;
 	}
-	for (i = 0; i < n; i++)
-		if (i && fputc('\n', fp) == EOF
-			|| writecard(fp, &cards[i]) == -1)
+	for (i = 0; i < n; i++) {
+		if (writecard(fp, &cards[i]) == -1)
 			goto WERR;
+		if (fputs(cards[i].sep, fp) == EOF)
+			goto WERR;
+	}
 	if (fclose(fp) == EOF) {
 		apperr = AESYS;
 		goto RET;
