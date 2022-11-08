@@ -35,13 +35,15 @@ int loadctab(char *filename, struct card *cards, int maxn)
 			break;
 		if (n == -1) {
 			lineno = NLINE - maxnl;
-			goto CLS;
+			goto CLR;
 		}
 		ncard++;
 	}
 	if (feof(fp))
 		ret = ncard;
-CLS:	fclose(fp);
+CLR:	while (n-- > 0)
+		destrcard(&cards[n]);
+	fclose(fp);
 RET:	return ret;
 }
 
@@ -64,7 +66,7 @@ int dumpctab(char *filename, struct card *cards, int n)
 	for (i = 0; i < n; i++) {
 		if (writecard(fp, &cards[i]) == -1)
 			goto WERR;
-		if (fputs(cards[i].sep, fp) == EOF)
+		if (cards[i].sep && fputs(cards[i].sep, fp) == EOF)
 			goto WERR;
 	}
 	if (fclose(fp) == EOF) {

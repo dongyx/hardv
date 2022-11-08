@@ -18,6 +18,17 @@ static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
 
+void destrcard(struct card *card)
+{
+	int i;
+
+	free(card->sep);
+	for (i = 0; i < card->nfield; i++) {
+		free(card->field[i].key);
+		free(card->field[i].val);
+	}
+}
+
 char *getmod(struct card *card)
 {
 	return getfield(card, MOD);
@@ -78,9 +89,11 @@ static int gettime(struct card *card, char *key, time_t *tp)
 static int settime(struct card *card, char *key, time_t t)
 {
 	struct tm *lctime;
-	char buf[VALSZ - 2];
-	int i;
+	char buf[VALSZ];
+	size_t n;
+	int i, newf;
 
+	newf = 0;
 	for (i = 0; i < card->nfield; i++)
 		if (!strcmp(card->field[i].key, key))
 			break;
@@ -89,9 +102,17 @@ static int settime(struct card *card, char *key, time_t t)
 			apperr = AEKEYSZ;
 			return -1;
 		}
+		if (card->nfield >= NFIELD) {
+			apperr = AERSVFIELD;
+			return -1;
+		}
+		newf = 1;
 		memmove(&card->field[1], &card->field[0],
 			card->nfield * sizeof card->field[0]);
-		strcpy(card->field[0].key, key);
+		if (!(card->field[0].key = strdup(key))) {
+			apperr = AESYS;
+			return -1;
+		}
 		card->nfield++;
 		i = 0;
 	}
@@ -99,11 +120,20 @@ static int settime(struct card *card, char *key, time_t t)
 		apperr = AESYS;
 		return -1;
 	}
-	if (!strftime(buf, sizeof buf, TIMEFMT " %z", lctime)) {
+	buf[0] = '\t';
+	if (!(n = strftime(&buf[1], VALSZ - 2, TIMEFMT " %z",
+		lctime))) {
 		apperr = AEVALSZ;
 		return -1;
 	}
-	sprintf(card->field[i].val, "\t%s\n", buf);
+	buf[1 + n] = '\n';
+	buf[2 + n] = '\0';
+	if (!newf)
+		free(card->field[i].val);
+	if (!(card->field[i].val = strdup(buf))) {
+		apperr = AEVALSZ;
+		return -1;
+	}
 	return 0;
 }
 

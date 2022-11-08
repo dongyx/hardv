@@ -5,16 +5,17 @@
 #include "applim.h"
 
 struct field {
-	char key[KEYSZ];
-	char val[VALSZ];
+	char *key;
+	char *val;
 };
 
 struct card {
 	int nfield, leadnewl, trainewl;
 	struct field field[NFIELD];
-	char sep[LINESZ];
+	char *sep;
 };
 
+void destrcard(struct card *card);
 char *getmod(struct card *card);
 char *getques(struct card *card);
 char *getansw(struct card *card);

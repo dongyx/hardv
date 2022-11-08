@@ -44,7 +44,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 	learnopt = opt;
 	lineno = 0;
 	if ((ncard = loadctab(curfile, cardtab, NCARD)) == -1)
-		return -1;
+		goto ERR;
 	for (i = 0; i < ncard; i++)
 		plan[i] = i;
 	if (opt->rand)
@@ -63,10 +63,10 @@ int learn(char *filename, int now, struct learnopt *opt)
 				puts(CAVEAT);
 			if (getmod(card)) {
 				if (exemod(card, now) == -1)
-					return -1;
+					goto ERR;
 			} else {
 				if (recall(card, now) == -1)
-					return -1;
+					goto ERR;
 			}
 			opt->any = 1;
 			if (opt->maxn > 0)
@@ -74,6 +74,9 @@ int learn(char *filename, int now, struct learnopt *opt)
 		}
 	}
 	return 0;
+ERR:	for (i = 0; i < ncard; i++)
+		destrcard(&cardtab[i]);
+	return -1;
 }
 
 static int isnow(struct card *card, time_t now)
