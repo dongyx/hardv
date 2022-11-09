@@ -204,6 +204,28 @@ Cards are typically separated by `%%` or `%` on a line by itself.
 In fact, any line starting with `%` is seen as a card separator,
 but `%%` is recommended.
 
+Empty cards are ignored.  Thus separators can be used as comments,
+demonstrated by the following.
+
+	%% This is a card set for hardv(1)
+	%% Created at Feb 1, 1997
+
+	Q       hex(256) = ?
+	A       0x100
+	%%
+	Q       hex(128) = ?
+	A       0x80
+
+	%% Arithmetic cards begin
+
+	Q       1 + 1 = ?
+	A       2
+	%%
+	Q       8 - 5 = ?
+	A       3
+
+	%% Arithmetic cards end
+
 See the man page `hardv(1)`
 for the full description of the input format.
 
@@ -223,7 +245,8 @@ The file format is not compatible.
 
 Thus `hardv` provides the `-1` option to convert old files.
 
-	$ hardv -1 a.fc b.fc
+	# Convert a.fc, b.fc, and c.fc to the new format, in-place
+	$ hardv -1 a.fc b.fc c.fc
 
 It in-place updates the old files to the new format.
 **Backing up the old files before updating is strongly recommend.**

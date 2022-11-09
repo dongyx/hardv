@@ -53,6 +53,33 @@ For blank lines in the value, the leading tab character is optional.
 Cards are separated by a line starting with the percent sign (\fB%\fR).
 \fB%%\fR on a line by it self is recommended.
 
+Empty cards are ignored.
+Thus separators can be used as comments,
+demonstrated by the following.
+
+.RS
+.nf
+%% This is a card set for hardv(1)
+%% Created at Feb 1, 1997
+
+Q	hex(256) = ?
+A	0x100
+%%
+Q	hex(128) = ?
+A	0x80
+
+%% Arithmetic cards begin
+
+Q	1 + 1 = ?
+A	2
+%%
+Q	8 - 5 = ?
+A	3
+
+%% Arithmetic cards end
+.fi
+.RE
+
 After a card is quizzed with \fBhardv\fR, two fields \fBPREV\fR and
 \fBNEXT\fR are updated (or inserted if they didn't exist) to indicate
 the previous quiz time and the next scheduled quiz time.
