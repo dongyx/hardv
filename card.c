@@ -53,12 +53,13 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 
 	char line[LINESZ], kbuf[KEYSZ], vbuf[VALSZ], *val;
 	size_t sep, n;
-	int ch, keylno;
+	int ch, keylno, nf;
 
 	if (feof(fp))
 		return 0;
 	memset(card, 0, sizeof *card);
 	*nline = 0;
+	nf = 0;
 	while ((ch = fgetc(fp)) == '\n') {
 		INCNLINE(1);
 		card->leadnewl++;
@@ -92,9 +93,14 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 			val = stpcpy(val, line);
 		} else {
 			/* new field */
+			if (nf >= NFIELD) {
+				apperr = AENFIELD;
+				goto ERR;
+			}
 			if (val)
 				SAVE_FIELD();
 			keylno = *nline;
+			nf++;
 			val = vbuf;
 			*val = '\0';
 			sep = strcspn(line, "\n\t");

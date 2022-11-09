@@ -223,11 +223,15 @@ The number of lines in the input file can't exceed \fBNLINE\fR.
 
 .TP
 \fBLINESZ
-A line in the input file must be less than \fBLINESZ\fR bytes
+A line in the input file must be less than \fBLINESZ\fR bytes.
 
 .TP
 \fBNCARD\fR
-The number of cards in the input file can't exceed \fBNCARD\fR
+The number of cards in the input file can't exceed \fBNCARD\fR.
+
+.TP
+\fBNFIELD\fR
+The number of fields in a card can't exceed \fBNFIELD\fR.
 
 .TP
 \fBKEYSZ\fR
