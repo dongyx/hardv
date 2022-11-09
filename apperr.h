@@ -7,7 +7,8 @@ void aeprint(char *head);
 
 enum {
 	AESYS = 1,	/* system error */
-	AENFIELD,	/* too many fields */
+	AENFIELD,	/* DEPRECATED */
+			/* too many fields */
 	AEMFIELD,	/* mandatory field not found */
 	AETIMEF,	/* invalid time format */
 	AEKEYSZ,	/* field key too large */
@@ -20,7 +21,8 @@ enum {
 	AENCARD,	/* too many cards */
 	AEINVAL,	/* invalid function arguments */
 	AEPATHSZ,	/* file name too large */
-	AERSVFIELD,	/* no space for reserved fields */
+	AERSVFIELD,	/* DEPRECATED */
+			/* no space for reserved fields */
 	AEBACKUP,	/* fail to create backup file */
 	AEINVKEY	/* invalid file key */
 };

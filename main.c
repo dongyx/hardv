@@ -110,7 +110,6 @@ static void pversion(FILE *fp)
 	fprintf(fp, "NLINE:	%d\n", NLINE);
 	fprintf(fp, "LINESZ:	%d\n", LINESZ);
 	fprintf(fp, "NCARD:	%d\n", NCARD);
-	fprintf(fp, "NFIELD:	%d\n", NFIELD);
 	fprintf(fp, "KEYSZ:	%d\n", KEYSZ);
 	fprintf(fp, "VALSZ:	%d\n", VALSZ);
 	fprintf(fp, "PATHSZ:	%d\n", PATHSZ);

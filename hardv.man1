@@ -203,12 +203,6 @@ A line in the input file must be less than \fBLINESZ\fR bytes
 The number of cards in the input file can't exceed \fBNCARD\fR
 
 .TP
-\fBNFIELD\fR
-A card can contain at most \fBNFIELD\fR fields.
-After running a quiz, the \fBPREV\fR and \fBNEXT\fR fields may be
-inserted. Reserve space for them.
-
-.TP
 \fBKEYSZ\fR
 The field key must be less than \fBKEYSZ\fR bytes.
 

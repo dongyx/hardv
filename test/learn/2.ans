@@ -17,6 +17,34 @@ A	0x8000
 %
 NEXT	2022-10-12 16:20:30 +0800
 PREV	2022-10-11 16:20:30 +0800
+a
+b
+c
+d
+e
+f
+g
+h
+i
+j
+k
+l
+m
+n
+o
+p
+q
+r
+s
+t
+u
+v
+w
+x
+y
+z
+
+
 Q	the reliable idiom of write()
 	
 	/* int rwrite(int fd, void *buf, int n) */

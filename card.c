@@ -92,13 +92,8 @@ int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
 			val = stpcpy(val, line);
 		} else {
 			/* new field */
-			if (card->nfield >= NFIELD) {
-				apperr = AENFIELD;
-				goto ERR;
-			}
 			if (val)
 				SAVE_FIELD();
-			card->nfield++;
 			keylno = *nline;
 			val = vbuf;
 			*val = '\0';
@@ -304,16 +299,8 @@ static int validfield(struct field *field)
 
 static int validcard(struct card *card)
 {
-	time_t prev, next;
-	int n;
-
 	if (!getques(card) || !getansw(card)) {
 		apperr = AEMFIELD;
-		return -1;
-	}
-	n = !!getfield(card, PREV) + !!getfield(card, NEXT);
-	if (card->nfield - n > NFIELD - 2) {
-		apperr = AERSVFIELD;
 		return -1;
 	}
 	return 0;

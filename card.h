@@ -13,7 +13,7 @@ struct field {
 };
 
 struct card {
-	int nfield, leadnewl;
+	int leadnewl;
 	struct field *field;
 	char *sep;
 };
