@@ -14,18 +14,158 @@
 #define TIMEFMT "%Y-%m-%d %H:%M:%S"
 #define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
 
+static struct field
+*setfield(struct card *card, char *key, char *val, int opt);
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
+static int validkey(char *key);
+static int validfield(struct field *field);
+static int validcard(struct card *card);
+static struct field *revfield(struct field **f);
+
+int readcard(FILE *fp, struct card *card, int *nline, int maxnl)
+{
+#define INCNLINE(n) do { \
+	if (maxnl - (*nline) < (n)) { \
+		apperr = AENLINE; \
+		goto ERR; \
+	} \
+	(*nline) += (n); \
+} while (0)
+
+#define CHK_VALSZ(n) do { \
+	if (val - vbuf >= VALSZ - (n)) { \
+		apperr = AEVALSZ; \
+		goto ERR; \
+	} \
+} while (0)
+
+#define SAVE_FIELD() do { \
+	struct field *f; \
+\
+	if (!(f = setfield(card, kbuf, vbuf, SETF_CREAT|SETF_EXCLD)) \
+		|| validfield(f)) { \
+		*nline = keylno; \
+		goto ERR; \
+	} \
+} while (0)
+
+	char line[LINESZ], kbuf[KEYSZ], vbuf[VALSZ], *val;
+	size_t sep, n;
+	int ch, keylno;
+
+	if (feof(fp))
+		return 0;
+	memset(card, 0, sizeof *card);
+	*nline = 0;
+	while ((ch = fgetc(fp)) == '\n') {
+		INCNLINE(1);
+		card->leadnewl++;
+	}
+	if (ungetc(ch, fp) != ch) {
+		apperr = AESYS;
+		goto ERR;
+	}
+	val = NULL;
+	while (fgets(line, LINESZ, fp)) {
+		INCNLINE(1);
+		n = strlen(line);
+		if (line[n - 1] != '\n' && !feof(fp)) {
+			apperr = AELINESZ;
+			goto ERR;
+		}
+		if (line[0] == '%') {
+			/* end of card */
+			if (!(card->sep = strdup(line))) {
+				apperr = AESYS;
+				goto ERR;
+			}
+			break;
+		} else if (line[0] == '\t' || line[0] == '\n') {
+			/* successive value line */
+			if (!val) {
+				apperr = AENOKEY;
+				goto ERR;
+			}
+			CHK_VALSZ(n);
+			val = stpcpy(val, line);
+		} else {
+			/* new field */
+			if (card->nfield >= NFIELD) {
+				apperr = AENFIELD;
+				goto ERR;
+			}
+			if (val)
+				SAVE_FIELD();
+			card->nfield++;
+			keylno = *nline;
+			val = vbuf;
+			*val = '\0';
+			sep = strcspn(line, "\n\t");
+			if (sep >= KEYSZ) {
+				apperr = AEKEYSZ;
+				goto ERR;
+			}
+			*stpncpy(kbuf, line, sep) = '\0';
+			if (validkey(kbuf))
+				goto ERR;
+			if (!line[sep])
+				continue;
+			CHK_VALSZ(n - sep);
+			val = stpcpy(val, &line[sep]);
+		}
+	}
+	if (ferror(fp)) {
+		apperr = AESYS;
+		goto ERR;
+	}
+	if (val) {
+		SAVE_FIELD();
+		if (validcard(card)) {
+			*nline = card->leadnewl + 1;
+			goto ERR;
+		}
+	}
+	revfield(&card->field);
+	return 1;
+ERR:	destrcard(card);
+	return -1;
+
+#undef INCNLINE
+#undef CHK_VALSZ
+#undef SAVE_FIELD
+}
+
+int writecard(FILE *fp, struct card *card)
+{
+	struct field *f;
+	int i;
+
+	for (i = 0; i < card->leadnewl; i++)
+		if (fputc('\n', fp) == EOF) {
+			apperr = AESYS;
+			return -1;
+		}
+	for (f = card->field; f != NULL; f = f->next) {
+		if (fprintf(fp, "%s%s", f->key, f->val) < 0) {
+			apperr = AESYS;
+			return -1;
+		}
+	}
+	return 0;
+}
 
 void destrcard(struct card *card)
 {
-	int i;
+	struct field *i, *j;
 
 	free(card->sep);
-	for (i = 0; i < card->nfield; i++) {
-		free(card->field[i].key);
-		free(card->field[i].val);
+	for (i = card->field; i != NULL; i = j) {
+		free(i->key);
+		free(i->val);
+		j = i->next;
+		free(i);
 	}
 }
 
@@ -64,79 +204,6 @@ int setnext(struct card *card, time_t next)
 	return settime(card, NEXT, next);
 }
 
-static char *getfield(struct card *card, char *key)
-{
-	int i;
-
-	for (i = 0; i < card->nfield; i++)
-		if (!strcmp(card->field[i].key, key))
-			return card->field[i].val;
-	return NULL;
-}
-
-static int gettime(struct card *card, char *key, time_t *tp)
-{
-	struct tm buf;
-	char *val;
-
-	if (!(val = getfield(card, key))) {
-		*tp = 0;
-		return 0;
-	}
-	return parsetm(val, tp);
-}
-
-static int settime(struct card *card, char *key, time_t t)
-{
-	struct tm *lctime;
-	char buf[VALSZ];
-	size_t n;
-	int i, newf;
-
-	newf = 0;
-	for (i = 0; i < card->nfield; i++)
-		if (!strcmp(card->field[i].key, key))
-			break;
-	if (i == card->nfield) {
-		if (strlen(key) >= KEYSZ) {
-			apperr = AEKEYSZ;
-			return -1;
-		}
-		if (card->nfield >= NFIELD) {
-			apperr = AERSVFIELD;
-			return -1;
-		}
-		newf = 1;
-		memmove(&card->field[1], &card->field[0],
-			card->nfield * sizeof card->field[0]);
-		if (!(card->field[0].key = strdup(key))) {
-			apperr = AESYS;
-			return -1;
-		}
-		card->nfield++;
-		i = 0;
-	}
-	if (!(lctime = localtime(&t))) {
-		apperr = AESYS;
-		return -1;
-	}
-	buf[0] = '\t';
-	if (!(n = strftime(&buf[1], VALSZ - 2, TIMEFMT " %z",
-		lctime))) {
-		apperr = AEVALSZ;
-		return -1;
-	}
-	buf[1 + n] = '\n';
-	buf[2 + n] = '\0';
-	if (!newf)
-		free(card->field[i].val);
-	if (!(card->field[i].val = strdup(buf))) {
-		apperr = AEVALSZ;
-		return -1;
-	}
-	return 0;
-}
-
 int parsetm(char *s, time_t *clock)
 {
 	int year, mon, day, hour, min, sec, zhour, zmin;
@@ -166,7 +233,58 @@ int parsetm(char *s, time_t *clock)
 	return 0;
 }
 
-int validkey(char *key)
+char *normval(char *s, char *buf, int n)
+{
+	char *sp, *bp;
+
+	while (*s == '\n')
+		s++;
+	for (sp = s, bp = buf; bp != &buf[n] && *sp; sp++)
+		if (*sp != '\t' || sp > s && sp[-1] != '\n')
+			*bp++ = *sp;
+	if (bp == &buf[n])
+		return NULL;
+	while (bp > buf && bp[-1] == '\n')
+		bp--;
+	*bp = '\0';
+	return buf;
+}
+
+static struct field
+*setfield(struct card *card, char *key, char *val, int opt)
+{
+	struct field *i;
+
+	if (strlen(key) >= KEYSZ) { apperr = AEKEYSZ; return NULL; }
+	for (i = card->field; i != NULL; i = i->next)
+		if (!strcmp(i->key, key)) {
+			if (opt & SETF_EXCLD) {
+				apperr = AEDUPKEY; return NULL;
+			}
+			break;
+		}
+	if (!i) {
+		if (!(opt & SETF_CREAT)) {
+			apperr = AEINVKEY; return NULL;
+		}
+		if (!(i = malloc(sizeof *i))) {
+			apperr = AESYS; return NULL;
+		}
+		memset(i, 0, sizeof *i);
+		if (!(i->key = strdup(key))) {
+			free(i); apperr = AESYS; return NULL;
+		}
+		i->next = card->field;
+		card->field = i;
+	}
+	free(i->val);
+	if (!(i->val = strdup(val))) {
+		apperr = AESYS; return NULL;
+	}
+	return i;
+}
+
+static int validkey(char *key)
 {
 	while (*key && (isalpha(*key) || isdigit(*key) || *key == '_'))
 		key++;
@@ -175,7 +293,7 @@ int validkey(char *key)
 	return *key;
 }
 
-int validfield(struct field *field)
+static int validfield(struct field *field)
 {
 	time_t t;
 
@@ -184,7 +302,7 @@ int validfield(struct field *field)
 	return 0;
 }
 
-int validcard(struct card *card)
+static int validcard(struct card *card)
 {
 	time_t prev, next;
 	int n;
@@ -201,19 +319,54 @@ int validcard(struct card *card)
 	return 0;
 }
 
-char *normval(char *s, char *buf, int n)
+static char *getfield(struct card *card, char *key)
 {
-	char *sp, *bp;
+	struct field *i;
 
-	while (*s == '\n')
-		s++;
-	for (sp = s, bp = buf; bp != &buf[n] && *sp; sp++)
-		if (*sp != '\t' || sp > s && sp[-1] != '\n')
-			*bp++ = *sp;
-	if (bp == &buf[n])
-		return NULL;
-	while (bp > buf && bp[-1] == '\n')
-		bp--;
-	*bp = '\0';
-	return buf;
+	for (i = card->field; i != NULL; i = i->next)
+		if (!strcmp(i->key, key))
+			return i->val;
+	return NULL;
+}
+
+static int gettime(struct card *card, char *key, time_t *tp)
+{
+	struct tm buf;
+	char *val;
+
+	if (!(val = getfield(card, key))) {
+		*tp = 0;
+		return 0;
+	}
+	return parsetm(val, tp);
+}
+
+static int settime(struct card *card, char *key, time_t t)
+{
+	struct tm *lctime;
+	char buf[VALSZ];
+	size_t n;
+
+	if (!(lctime = localtime(&t))) { apperr = AESYS; return -1; }
+	buf[0] = '\t';
+	if (!(n = strftime(&buf[1], VALSZ - 2, TIMEFMT " %z",
+		lctime))) {
+		apperr = AEVALSZ; return -1;
+	}
+	buf[1 + n] = '\n';
+	buf[2 + n] = '\0';
+	return setfield(card, key, buf, SETF_CREAT) ? 0 : -1;
+}
+
+static struct field *revfield(struct field **f)
+{
+	struct field *c, *n;
+
+	c = *f;
+	if (c && (n = c->next)) {
+		revfield(&n)->next = c;
+		c->next = NULL;
+		*f = n;
+	}
+	return c;
 }

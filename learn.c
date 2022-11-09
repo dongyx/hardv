@@ -9,7 +9,6 @@
 #include "ctab.h"
 #include "apperr.h"
 #include "applim.h"
-#include "parse.h"
 #include "learn.h"
 #define SHELL "/bin/sh"
 #define DAY 60*60*24
@@ -38,13 +37,14 @@ int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
-	int i, j, swp;
+	int i, j, swp, ret;
 
+	ret = -1;
 	curfile = filename;
 	learnopt = opt;
 	lineno = 0;
 	if ((ncard = loadctab(curfile, cardtab, NCARD)) == -1)
-		goto ERR;
+		goto CLR;
 	for (i = 0; i < ncard; i++)
 		plan[i] = i;
 	if (opt->rand)
@@ -58,25 +58,27 @@ int learn(char *filename, int now, struct learnopt *opt)
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 	for (i = 0; i < ncard && opt->maxn; i++) {
 		card = &cardtab[plan[i]];
+		if (!card->field)
+			continue;
 		if (isnow(card, now)) {
 			if (!opt->any)
 				puts(CAVEAT);
 			if (getmod(card)) {
 				if (exemod(card, now) == -1)
-					goto ERR;
+					goto CLR;
 			} else {
 				if (recall(card, now) == -1)
-					goto ERR;
+					goto CLR;
 			}
 			opt->any = 1;
 			if (opt->maxn > 0)
 				opt->maxn--;
 		}
 	}
-	return 0;
-ERR:	for (i = 0; i < ncard; i++)
+	ret = 0;
+CLR:	for (i = 0; i < ncard; i++)
 		destrcard(&cardtab[i]);
-	return -1;
+	return ret;
 }
 
 static int isnow(struct card *card, time_t now)

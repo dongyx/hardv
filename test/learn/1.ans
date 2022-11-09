@@ -1,3 +1,6 @@
+%% This is the test input
+%% of the hardv(1) program.
+
 PREV	2022-10-11 16:20:30 +0800
 Q	The famous C program from a famous book:
 	hello world
@@ -10,7 +13,7 @@ A	#include <stdio.h>
 	{
 		printf("hello, world\n");
 	}
-%
+%comment is good
 NEXT	2023-08-11 12:00:00 +0800
 Q	hex(32768) = ?
 A	0x8000
@@ -39,6 +42,8 @@ A	int rwrite(int fd, void *buf, int n)
 		return n
 	}
 %
+% 12345
+
 PREV	2008-03-02 13:27:09 +0800
 Q	hello
 A	hi
@@ -47,3 +52,5 @@ PREV	2013-09-10 00:12:32 +0800
 NEXT	2023-07-24 17:51:12 +0800
 Q	hex(128) = ?
 A	0x80
+
+%%%

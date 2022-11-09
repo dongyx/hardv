@@ -7,7 +7,6 @@
 #include "apperr.h"
 #include "applim.h"
 #include "card.h"
-#include "parse.h"
 #include "siglock.h"
 #include "ctab.h"
 
