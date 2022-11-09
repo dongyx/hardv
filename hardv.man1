@@ -82,12 +82,15 @@ A	3
 
 After a card is quizzed with \fBhardv\fR, two fields \fBPREV\fR and
 \fBNEXT\fR are updated (or inserted if they didn't exist) to indicate
-the previous quiz time and the next scheduled quiz time.
-The two fields are date time strings in the format like the following.
+the previous quiz time and the next scheduled quiz time,
+demonstrated by the following.
 
 .RS
 .nf
-1993-02-25 15:31:06 -0500
+NEXT    2001-08-21 15:31:06 -0500
+PREV    2001-08-23 15:31:06 -0500
+Q       1 + 1 = ?
+A       2
 .fi
 .RE
 

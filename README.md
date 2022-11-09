@@ -5,17 +5,16 @@ hardv
 [my Twitter](https://twitter.com/dongyx2)*
 
 `hardv` is a highly extendable flashcard quiz app for UNIX terminals,
-written in plain C.
-
-**`hardv` allows you to customize the quiz of a specific card
+written in plain C. 
+**It allows you to customize the quiz of a specific card
 in almost every possible aspect,
-with any programming language you prefer.
+with any programming language you prefer.**
 For example,
 you may request a card must be copied exactly,
 or open an image in a GUI window.
 You may even request `hardv` to open the editor and send the content you
 write to an online judge system of algorithmic problems,
-and schedule the next quiz time by the judging result.**
+and schedule the next quiz time by the judging result.
 
 But first of all, let's see the standard quiz of `hardv`.
 
@@ -43,6 +42,7 @@ Subsequent lines in the value are indented by a tab character.
 (See the [*Input Format*](#input-format) section)
 
 We could use `hardv` to run a quiz.
+(See the [*Installation*](#installation) section)
 	
 	$ hardv input.fc
 	...
@@ -65,6 +65,14 @@ We could use `hardv` to run a quiz.
 After running a quiz,
 two new fields `PREV` and `NEXT` may be inserted to the original file,
 to indicate the previous and the next scheduled quiz time.
+
+	NEXT    2001-08-21 15:31:06 -0500
+	PREV    2001-08-23 15:31:06 -0500
+	Q       hex(128) = ?
+	A       0x80
+
+You could manually modify these two fields to tune the quiz time.
+
 The time interval is doubled if you are able to recall the card.
 Otherwise the card will be scheduled at 24 hours later.
 See the man page `hardv(1)` for detail.
