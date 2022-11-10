@@ -14,13 +14,7 @@
 #define TIMEFMT "%Y-%m-%d %H:%M:%S"
 #define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
 
-struct field {
-	char *key;
-	char *val;
-	struct field *next;
-};
 enum { SETF_CREAT = 1, SETF_EXCLD = 2 };
-
 static struct field *setfield(struct card *card, char *key, char *val,
 	int opt);
 static char *getfield(struct card *card, char *key);
@@ -192,14 +186,20 @@ char *getansw(struct card *card)
 	return getfield(card, ANSW);
 }
 
-int getprev(struct card *card, time_t *tp)
+time_t getprev(struct card *card)
 {
-	return gettime(card, PREV, tp);
+	time_t t;
+
+	gettime(card, PREV, &t);
+	return t;
 }
 
-int getnext(struct card *card, time_t *tp)
+time_t getnext(struct card *card)
 {
-	return gettime(card, NEXT, tp);
+	time_t t;
+
+	gettime(card, NEXT, &t);
+	return t;
 }
 
 int setprev(struct card *card, time_t prev)

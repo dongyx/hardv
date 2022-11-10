@@ -88,7 +88,7 @@ static int isnow(struct card *card, time_t now)
 	struct tm today, theday;
 	time_t next;
 
-	getnext(card, &next);
+	next = getnext(card);
 	if (next <= 0)
 		next = now;
 	if (learnopt->exact)
@@ -102,7 +102,11 @@ static int isnow(struct card *card, time_t now)
 
 static int exemod(struct card *card, time_t now)
 {
-	char vbuf[VALSZ];
+	const char fpref[] = "HARDV_F_";
+	char sprev[64], snext[64], snow[64], first[2];
+	char kbuf[KEYSZ + sizeof(fpref) - 1];
+	char mod[VALSZ], q[VALSZ], a[VALSZ];
+	struct field *f;
 	pid_t pid;
 	int stat;
 
@@ -112,32 +116,44 @@ static int exemod(struct card *card, time_t now)
 	}
 	/* child */
 	if (pid == 0) {
-		if (setenv("HARDV_Q",
-			normval(getques(card), vbuf, VALSZ)
-			, 1) == -1
-		|| setenv("HARDV_A",
-			normval(getansw(card), vbuf, VALSZ)
-			, 1) == -1
-		|| setenv("HARDV_FIRST",
-			learnopt->any ? "" : "1"
-			, 1) == -1
+		strcpy(kbuf, fpref);
+		normval(getmod(card), mod, VALSZ);
+		normval(getques(card), q, VALSZ);
+		normval(getansw(card), a, VALSZ);
+		sprintf(snext, "%ld", (long)getnext(card));
+		sprintf(sprev, "%ld", (long)getprev(card));
+		sprintf(snow, "%ld", (long)now);
+		first[0] = first[1] = '\0';
+		if (learnopt->any)
+			first[0] = '1';
+		if (	setenv("HARDV_Q",	q,	1) == -1 ||
+			setenv("HARDV_A",	a,	1) == -1 ||
+			setenv("HARDV_NEXT",	snext,	1) == -1 ||
+			setenv("HARDV_PREV",	sprev,	1) == -1 ||
+			setenv("HARDV_NOW",	snow,	1) == -1 ||
+			setenv("HARDV_FIRST",	first,	1) == -1
 		) {
-			perror("setenv");
+			perror("setenv[1]");
 			exit(2);
 		}
-		if (execl(SHELL, SHELL, "-c",
-			normval(getmod(card), vbuf, VALSZ)
-			, NULL) == -1
-		) {
+		for (f = card->field; f != NULL; f = f->next) {
+			strcpy(&kbuf[sizeof(fpref) - 1], f->key);
+			if (setenv(kbuf, f->val, 1) == -1) {
+				perror("setenv[2]");
+				exit(2);
+			}
+		}
+		if (execl(SHELL, SHELL, "-c", mod, NULL) == -1) {
 			apperr = AESYS;
 			exit(2);
 		}
 	}
 	/* parent */
-	if (waitpid(pid, &stat, 0) != pid) {
-		apperr = AESYS;
-		return -1;
-	}
+	while (waitpid(pid, &stat, 0) == -1)
+		if (errno == EINTR) {
+			apperr = AESYS;
+			return -1;
+		}
 	switch (WEXITSTATUS(stat)) {
 	case 0:
 		if (sety(card, now) == -1)
@@ -207,8 +223,8 @@ static int plancmp(int *i, int *j)
 {
 	time_t ni, nj;
 
-	getnext(&cardtab[*i], &ni);
-	getnext(&cardtab[*j], &nj);
+	ni = getnext(&cardtab[*i]);
+	nj = getnext(&cardtab[*j]);
 	if (ni < nj) return -1;
 	if (ni > nj) return 1;
 	if (*i < *j) return -1;
@@ -241,10 +257,10 @@ static int setn(struct card *card, time_t now)
 static void preset(struct card *card, time_t now,
 	time_t *prev, time_t *next, time_t *diff)
 {
-	getprev(card, prev);
+	*prev = getprev(card);
 	if (*prev <= 0)
 		*prev = now;	
-	getnext(card, next);
+	*next = getnext(card);
 	if (*next <= 0)
 		*next = now;
 	if (*next < *prev || (*diff = *next - *prev) < DAY)

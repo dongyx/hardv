@@ -163,11 +163,23 @@ and sets the following environment variables:
 
 .TP
 \fBHARDV_Q\fR
-the content of the \fBQ\fR field
+the normalized content of the \fBQ\fR field
 
 .TP
 \fBHARDV_A\fR
-the content of the \fBA\fR field
+the normalized content of the \fBA\fR field
+
+.TP
+\fBHARDV_PREV\fR
+the \fBPREV\fR field in the form of the seconds since the Epoch
+
+.TP
+\fBHARDV_NEXT\fR
+the \fBNEXT\fR field in the form of the seconds since the Epoch
+
+.TP
+\fBHARDV_NOW\fR
+the quiz starting time in the form of the seconds since the Epoch
 
 .TP
 \fBHARDV_FIRST\fR
@@ -176,6 +188,14 @@ it is set to \fB1\fR.
 Otherwise, it's set to the empty string.
 
 .RE
+
+The normalized content is the original content without
+leading newlines, trailing newlines, and the indent tab.
+
+The original content of each field is stored in \fBHARDV_F_\fIkey\fR.
+For example,
+the original content of the \fBQ\fR field
+can be accessed by \fBHARDV_F_Q\fR.
 
 If the mod script exits with status \fB0\fR, the effect is equivalent to
 take the \fBy\fR action in the standard quiz procedure.

@@ -1,0 +1,21 @@
+%% y
+PREV	2022-10-29 22:12:28 +0800
+MOD	./enveq.mod HARDV_F_Q \
+	'	hello
+		hello
+	'
+NEXT	2022-10-31 22:12:28 +0800
+Q	hello
+	hello
+A	hi
+%% n
+PREV	2022-10-29 22:12:28 +0800
+MOD	./enveq.mod HARDV_F_A '	hi'
+NEXT	2022-10-30 22:12:28 +0800
+Q	hello
+A	hi
+%% s
+MOD	./enveq.mod HARDV_Q_F_nonexist 'x'
+NEXT	2022-10-28 22:12:28 +0800
+Q	hello
+A	hi
