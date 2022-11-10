@@ -60,7 +60,7 @@ int dumpctab(char *filename, struct card *cards, int n)
 	}
 	if (!(fp = fopen(filename, "w"))) {
 		apperr = AESYS;
-		goto ULK;
+		goto WERR;
 	}
 	for (i = 0; i < n; i++) {
 		if (writecard(fp, &cards[i]) == -1)
@@ -69,15 +69,17 @@ int dumpctab(char *filename, struct card *cards, int n)
 			goto WERR;
 	}
 	if (fclose(fp) == EOF) {
+		fp = NULL;
 		apperr = AESYS;
-		goto RET;
+		goto WERR;
 	}
-	ret = 0;
-ULK:	unlink(bakfname);
+	unlink(bakfname);
 	bakfname = NULL;
+	ret = 0;
 RET:	siglock(SIGLOCK_UNLOCK);
 	return ret;
-WERR:	fclose(fp);
+WERR:	if (fp)
+		fclose(fp);
 	goto RET;
 }
 
