@@ -93,9 +93,16 @@ static int isnow(struct card *card, time_t now)
 		return now >= next;
 	memcpy(&today, localtime(&now), sizeof today);
 	memcpy(&theday, localtime(&next), sizeof theday);
-	return today.tm_year >= theday.tm_year &&
-		today.tm_mon >= theday.tm_mon &&
-		today.tm_mday >= theday.tm_mday;
+	if (today.tm_year > theday.tm_year)
+		return 1;
+	if (today.tm_year == theday.tm_year
+		&& today.tm_mon > theday.tm_mon)
+		return 1;
+	if (today.tm_year == theday.tm_year
+		&& today.tm_mon == theday.tm_mon
+		&& today.tm_mday >= theday.tm_mday)
+		return 1;
+	return 0;
 }
 
 static int exemod(struct card *card, time_t now)
