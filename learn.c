@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/wait.h>
 #include "card.h"
 #include "ctab.h"
@@ -37,7 +38,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
-	int i, j, swp, ret;
+	int i, j, swp, ret, stop;
 
 	ret = -1;
 	curfile = filename;
@@ -56,7 +57,8 @@ int learn(char *filename, int now, struct learnopt *opt)
 		}
 	else
 		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
-	for (i = 0; i < ncard && opt->maxn; i++) {
+	stop = 0;
+	for (i = 0; !stop && i < ncard && opt->maxn; i++) {
 		card = &cardtab[plan[i]];
 		if (!card->field)
 			continue;
@@ -66,9 +68,9 @@ int learn(char *filename, int now, struct learnopt *opt)
 			if (getmod(card)) {
 				if (exemod(card, now) == -1)
 					goto CLR;
-			} else {
-				if (recall(card, now) == -1)
-					goto CLR;
+			} else switch(recall(card, now)) {
+				case -1:	goto CLR;
+				case  1:	stop = 1;
 			}
 			opt->any = 1;
 			if (opt->maxn > 0)
@@ -151,6 +153,17 @@ static int exemod(struct card *card, time_t now)
 
 static int recall(struct card *card, time_t now)
 {
+#define GETIN() do { \
+	while (!fgets(in, sizeof in, stdin)) { \
+		if (feof(stdin)) \
+			return 1; \
+		if (errno != EINTR) { \
+			apperr = AESYS; \
+			return -1; \
+		} \
+	} \
+} while (0)
+
 	char in[BUFSIZ], ques[VALSZ], answ[VALSZ];
 
 	if (learnopt->any)
@@ -164,12 +177,7 @@ static int recall(struct card *card, time_t now)
 CHECK:
 	fputs("Press <ENTER> to check the answer.\n", stdout);
 	fflush(stdout);
-	if (!fgets(in, sizeof in, stdin)) {
-		if (feof(stdin))
-			return 0;
-		apperr = AESYS;
-		return -1;
-	}
+	GETIN();
 	if (strcmp(in, "\n"))
 		goto CHECK;
 	puts("A:\n");
@@ -179,12 +187,7 @@ CHECK:
 QUERY:
 	fputs("Do you recall? (y/n/s)\n", stdout);
 	fflush(stdout);
-	if (!fgets(in, sizeof in, stdin)) {
-		if (feof(stdin))
-			return 0;
-		apperr = AESYS;
-		return -1;
-	}
+	GETIN();
 	if (strcmp(in, "y\n") && strcmp(in, "n\n") && strcmp(in, "s\n"))
 		goto QUERY;
 	switch (in[0]) {
