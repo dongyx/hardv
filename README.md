@@ -1,22 +1,45 @@
 hardv
 =====
+(/*hɑ:rd'vi:*/)
 
-*Any news about this project would be published on
-[my Twitter](https://twitter.com/dongyx2)*
 
-`hardv` is a highly extendable flashcard quiz app for UNIX terminals,
-written in plain C. 
-**It allows you to customize the quiz of a specific card
-in almost every possible aspect,
-with any programming language you prefer.**
-For example,
-you may request a card must be copied exactly,
-or open an image in a GUI window.
-You may even request `hardv` to open the editor and send the content you
-write to an online judge system of algorithmic problems,
-and schedule the next quiz time by the judging result.
+`hardv` is a CLI flashcard app for UNIX-compatible systems,
+conforming to the UNIX philosophy.
 
-But first of all, let's see the standard quiz of `hardv`.
+- The format of input files are
+easy to parse by both human and other UNIX utilities
+like `grep`/`cut`/`sed`/`awk`/`perl`/...
+
+- Metadata is written back to the input file, no hidden secret.
+
+- Except the review scheduling algorithm and the parser,
+everything can be customized,
+with any programming language you prefer.
+E.g.:
+
+	- You may configure it to a TUI program,
+	or to view images in a GUI window.
+	- `hardv` can open the editor;
+	Send the content you wrote
+	to an online judging system,
+	and determine the next quiz time by the judging result.
+	- It can be used to implement
+	keyboard shortcut practice,
+	cloze deletion,
+	text-to-speech review,
+	typing in the answer,
+	and more.
+
+- By default, `hardv` is an interactive UNIX filter
+which makes it easy to be controlled by a master program.
+
+- The scheduling algorithm is simple exponential time intervals,
+easy to build a mental model.
+
+Getting Started
+---------------
+
+First of all, let's see the standard quiz of `hardv`.
 
 Suppose we have a file `input.fc` consists of flashcards.
 
@@ -79,7 +102,7 @@ See the man page `hardv(1)` for detail.
 
 To customize the quiz,
 a `MOD` field is required to be added to the card.
-See the next section.
+See the [*Customize the Quiz*](#customize-the-quiz) section.
 
 Customize the Quiz
 ------------------
@@ -258,3 +281,9 @@ Thus `hardv` provides the `-1` option to convert old files.
 
 It in-place updates the old files to the new format.
 **Backing up the old files before updating is strongly recommend.**
+
+Following News
+--------------
+
+- <https://www.dyx.name>
+- [@dongyx2](https://twitter.com/dongyx2)
