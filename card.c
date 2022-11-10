@@ -14,8 +14,15 @@
 #define TIMEFMT "%Y-%m-%d %H:%M:%S"
 #define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
 
-static struct field
-*setfield(struct card *card, char *key, char *val, int opt);
+struct field {
+	char *key;
+	char *val;
+	struct field *next;
+};
+enum { SETF_CREAT = 1, SETF_EXCLD = 2 };
+
+static struct field *setfield(struct card *card, char *key, char *val,
+	int opt);
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
@@ -251,8 +258,8 @@ char *normval(char *s, char *buf, int n)
 	return buf;
 }
 
-static struct field
-*setfield(struct card *card, char *key, char *val, int opt)
+static struct field *setfield(struct card *card, char *key, char *val,
+	int opt)
 {
 	struct field *i;
 

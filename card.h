@@ -4,14 +4,6 @@
 #include <time.h>
 #include "applim.h"
 
-enum { SETF_CREAT = 1, SETF_EXCLD = 2 };
-
-struct field {
-	char *key;
-	char *val;
-	struct field *next;
-};
-
 struct card {
 	int leadnewl;
 	struct field *field;
