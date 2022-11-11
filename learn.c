@@ -131,7 +131,7 @@ static int exemod(struct card *card, time_t now)
 		sprintf(sprev, "%ld", (long)getprev(card));
 		sprintf(snow, "%ld", (long)now);
 		first[0] = first[1] = '\0';
-		if (learnopt->any)
+		if (!learnopt->any)
 			first[0] = '1';
 		if (	setenv("HARDV_Q",	q,	1) == -1 ||
 			setenv("HARDV_A",	a,	1) == -1 ||

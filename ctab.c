@@ -104,8 +104,8 @@ static char *backup(char *src)
 		goto CL1;
 	}
 	while ((n = read(fd[0], buf, sizeof buf)) > 0)
-		 if (write(fd[1], buf, n) != n) {
-		 	apperr = AESYS;
+		if (write(fd[1], buf, n) != n) {
+			apperr = AESYS;
 			goto CL0;
 		}
 	if (n < 0) {

@@ -2,18 +2,10 @@ hardv
 =====
 (/*hɑ:rd'vi:*/)
 
-
 `hardv` is a CLI flashcard app for UNIX-compatible systems,
 conforming to the UNIX philosophy.
 
-- The format of input files are
-easy to parse by both human and other UNIX utilities
-like `grep`/`cut`/`sed`/`awk`/`perl`/...
-
-- Metadata is written back to the input file, no hidden secret.
-
-- Except the review scheduling algorithm and the parser,
-everything can be customized,
+- Almost everything can be customized,
 with any programming language you prefer.
 E.g.:
 
@@ -30,11 +22,16 @@ E.g.:
 	typing in the answer,
 	and more.
 
-- By default, `hardv` is an interactive UNIX filter
-which makes it easy to be controlled by a master program.
+- The format of input files are
+easy to be parsed by both human and other UNIX utilities
+like `grep`/`cut`/`sed`/`awk`/...
 
-- The scheduling algorithm is simple exponential time intervals,
-easy to build a mental model.
+- Metadata like scheduled time is written back to input files;
+Thus all your data is in files created and managed by yourself;
+Nothing would prevent you from migration or uninstall.
+
+- It is a UNIX filter, although an interactive one.
+That makes `hardv` easy to be called by other programs.
 
 Getting Started
 ---------------
