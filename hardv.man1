@@ -31,7 +31,7 @@ Q	hex(128) = ?
 A	0x80
 %%
 Q	hex(32768) = ?
-A
+A	0x8000
 %%
 Q	the most famous C program from K&R, second edition
 A	#include <stdio.h>
@@ -40,7 +40,6 @@ A	#include <stdio.h>
 	{
 		printf("hello world\\n");
 	}
-	0x8000
 .fi
 .RE
 
@@ -194,7 +193,7 @@ Otherwise, it's set to the empty string.
 .RE
 
 The normalized content is the original content without
-leading newlines, trailing newlines, and the indent tab.
+leading newlines, trailing newlines, and indent tabs.
 
 The original content of each field is stored in \fBHARDV_F_\fIkey\fR.
 For example,
@@ -256,15 +255,15 @@ which determine the limitation of data.
 
 .TP
 \fBNLINE\fR
-The number of lines in the input file can't exceed \fBNLINE\fR.
+The number of lines in an input file can't exceed \fBNLINE\fR.
 
 .TP
 \fBLINESZ
-A line in the input file must be less than \fBLINESZ\fR bytes.
+A line in input files must be less than \fBLINESZ\fR bytes.
 
 .TP
 \fBNCARD\fR
-The number of cards in the input file can't exceed \fBNCARD\fR.
+The number of cards in an input file can't exceed \fBNCARD\fR.
 
 .TP
 \fBNFIELD\fR
