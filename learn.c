@@ -27,7 +27,6 @@ static int ncard;
 static int isnow(struct card *card, time_t now);
 static int exemod(struct card *card, time_t now);
 static int recall(struct card *card, time_t now);
-static int plancmp(int *i, int *j);
 static int sety(struct card *card, time_t now);
 static int setn(struct card *card, time_t now);
 static void preset(struct card *card, time_t now,
@@ -38,7 +37,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 {
 	static int plan[NCARD];
 	struct card *card;
-	int i, j, swp, ret, stop;
+	int i, j, swp, ret, stop, np;
 
 	ret = -1;
 	curfile = filename;
@@ -46,36 +45,34 @@ int learn(char *filename, int now, struct learnopt *opt)
 	lineno = 0;
 	if ((ncard = loadctab(curfile, cardtab, NCARD)) == -1)
 		goto CLR;
-	for (i = 0; i < ncard; i++)
-		plan[i] = i;
+	np = 0;
+	for (i = 0; i < ncard; i++) {
+		card = &cardtab[i];
+		if (card->field && isnow(card, now))
+			plan[np++] = i;
+	}
 	if (opt->rand)
-		for (i = 0; i < ncard; i++) {
-			j = i + rand() % (ncard - i);
+		for (i = 0; i < np; i++) {
+			j = i + rand() % (np - i);
 			swp = plan[i];
 			plan[i] = plan[j];
 			plan[j] = swp;
 		}
-	else
-		qsort(plan, ncard, sizeof plan[0], (int (*)())plancmp);
 	stop = 0;
-	for (i = 0; !stop && i < ncard && opt->maxn; i++) {
+	for (i = 0; !stop && i < np && opt->maxn; i++) {
 		card = &cardtab[plan[i]];
-		if (!card->field)
-			continue;
-		if (isnow(card, now)) {
-			if (!opt->any)
-				puts(CAVEAT);
-			if (getmod(card)) {
-				if (exemod(card, now) == -1)
-					goto CLR;
-			} else switch(recall(card, now)) {
-				case -1:	goto CLR;
-				case  1:	stop = 1;
-			}
-			opt->any = 1;
-			if (opt->maxn > 0)
-				opt->maxn--;
+		if (!opt->any)
+			puts(CAVEAT);
+		if (getmod(card)) {
+			if (exemod(card, now) == -1)
+				goto CLR;
+		} else switch(recall(card, now)) {
+			case -1:	goto CLR;
+			case  1:	stop = 1;
 		}
+		opt->any = 1;
+		if (opt->maxn > 0)
+			opt->maxn--;
 	}
 	ret = 0;
 CLR:	for (i = 0; i < ncard; i++)
@@ -157,7 +154,7 @@ static int exemod(struct card *card, time_t now)
 	}
 	/* parent */
 	while (waitpid(pid, &stat, 0) == -1)
-		if (errno == EINTR) {
+		if (errno != EINTR) {
 			apperr = AESYS;
 			return -1;
 		}
@@ -223,19 +220,6 @@ QUERY:
 			return -1;
 		break;
 	}
-	return 0;
-}
-
-static int plancmp(int *i, int *j)
-{
-	time_t ni, nj;
-
-	ni = getnext(&cardtab[*i]);
-	nj = getnext(&cardtab[*j]);
-	if (ni < nj) return -1;
-	if (ni > nj) return 1;
-	if (*i < *j) return -1;
-	if (*i > *j) return 1;
 	return 0;
 }
 

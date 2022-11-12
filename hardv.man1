@@ -15,7 +15,15 @@ hardv - flashcards quiz
 
 .SH DESCRIPTION
 
-The input \fIfile\fR contains flash cards demonstrated below:
+\fBhardv\fR filters flashcards in \fIfile\fRs scheduled to be tested
+earlier than or within today (see the \fB-e\fR option).
+\fBhardv\fR runs a quiz with these flashcards,
+and updates their schedules.
+
+The format of \fIfile\fR is demonstrated below.
+The key and value of a field is separated by a tab character.
+Subsequent lines in the value are indented by a tab character.
+See the \fIINPUT FORMAT\fR section for detail.
 
 .RS
 .nf
@@ -35,6 +43,11 @@ A	#include <stdio.h>
 	0x8000
 .fi
 .RE
+
+\fBhardv\fR may insert other fields after running,
+to record metadata.
+
+.SH INPUT FORMAT
 
 A card is a key-value structure contains at least two fields \fBQ\fR
 and \fBA\fR.
@@ -97,10 +110,6 @@ A       2
 You could modify the \fBPREV\fR and \fBNEXT\fR fields to manually tune
 the quiz time.
 
-\fBhardv\fR reads input \fIfile\fRs and filters out cards which are
-scheduled to be quizzed earlier than or within today
-(see the \fB-e\fR option).
-
 If the card doesn't contain the \fBPREV\fR field
 or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
 it will be reset to the start time of the current quiz.
@@ -108,13 +117,6 @@ it will be reset to the start time of the current quiz.
 If the card doesn't contain the \fBNEXT\fR field
 or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
 it will be reset to the start time of the current quiz.
-
-If the card doesn't contain the \fBMOD\fR field,
-the standard quiz procedure is used. 
-(see the \fISTANDARD QUIZ PROCEDURE\fR section)
-
-Otherwise, the customized quiz procedure is used. 
-(see the \fICUSTOMIZED QUIZ PROCEDURE\fR section)
 
 A card is allowed to contain other fields not mentioned above, as long
 as the key consists of alphabets, digits and underlines.
@@ -124,6 +126,9 @@ They are allowed but not recommended, for specific meanings could be
 assigned to them in further versions.
 
 .SH STANDARD QUIZ PROCEDURE
+
+If the card doesn't contain the \fBMOD\fR field,
+the standard quiz procedure is used. 
 
 \fBhardv\fR prints the content of the \fBQ\fR field.
 The user tries to recall the corresponding \fBA\fR field
@@ -157,9 +162,8 @@ Nothing will be updated.
 
 If the card contains the \fBMOD\fR field,
 the customized quiz procedure is used.
-The value of the \fBMOD\fR field is a shell script.
-\fBhardv\fR executes the script by calling \fB/bin/sh -c\fR
-and sets the following environment variables:
+The value of the \fBMOD\fR field is executed by \fB/bin/sh -c\fR,
+with several environment variables set:
 
 .TP
 \fBHARDV_Q\fR
@@ -234,6 +238,16 @@ Print the brief help message.
 .TP
 \fB-v
 Print the version and building arguments.
+
+.SH ENVIRONMENT
+
+.TP
+\fBHARDV_NOW\fR
+If this environment variable is set,
+\fBhardv\fR uses it as the quiz starting time,
+instead of the current system time.
+The format of this variable is the same as of
+the \fBPREV\fR and \fBNEXT\fR field.
 
 .SH LIMITATION
 
