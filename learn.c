@@ -42,9 +42,8 @@ int learn(char *filename, int now, struct learnopt *opt)
 	ret = -1;
 	curfile = filename;
 	learnopt = opt;
-	lineno = 0;
 	if ((ncard = loadctab(curfile, cardtab, NCARD)) == -1)
-		goto CLR;
+		goto RET;
 	np = 0;
 	for (i = 0; i < ncard; i++) {
 		card = &cardtab[i];
@@ -77,7 +76,7 @@ int learn(char *filename, int now, struct learnopt *opt)
 	ret = 0;
 CLR:	for (i = 0; i < ncard; i++)
 		destrcard(&cardtab[i]);
-	return ret;
+RET:	return ret;
 }
 
 static int isnow(struct card *card, time_t now)
@@ -221,6 +220,7 @@ QUERY:
 		break;
 	}
 	return 0;
+#undef GETIN
 }
 
 static int sety(struct card *card, time_t now)

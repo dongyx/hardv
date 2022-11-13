@@ -265,20 +265,6 @@ Executing `hardv -h` prints a brief help.
 Full description is documented in the man page `hardv(1)`.
 Typing `man hardv` to read.
 
-Migration from 1.x
-------------------
-
-`hardv` 2.0.0 is a breaking change from 1.x.
-The file format is not compatible.
-
-Thus `hardv` provides the `-1` option to convert old files.
-
-	# Convert a.fc, b.fc, and c.fc to the new format, in-place
-	$ hardv -1 a.fc b.fc c.fc
-
-It in-place updates the old files to the new format.
-**Backing up the old files before updating is strongly recommend.**
-
 Following News
 --------------
 

@@ -23,9 +23,9 @@ char *aestr(int eno)
 		"too many cards",
 		"invalid function arguments",
 		"file name too large",
-		"no space for reserved fields",
 		"fail to create backup file",
-		"invalid field key"
+		"invalid field key",
+		"backup file already exists"
 	};
 
 	if (eno == AESYS)

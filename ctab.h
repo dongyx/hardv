@@ -34,4 +34,7 @@ int loadctab(char *filename, struct card *cards, int maxn);
  */
 int dumpctab(char *filename, struct card *cards, int n);
 
+/* return the desirable backup file */
+char *getbname(char *src);
+
 #endif

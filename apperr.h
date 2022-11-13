@@ -20,10 +20,9 @@ enum {
 	AENCARD,	/* too many cards */
 	AEINVAL,	/* invalid function arguments */
 	AEPATHSZ,	/* file name too large */
-	AERSVFIELD,	/* DEPRECATED */
-			/* no space for reserved fields */
 	AEBACKUP,	/* fail to create backup file */
-	AEINVKEY	/* invalid file key */
+	AEINVKEY,	/* invalid file key */
+	AEEXBF	/* backup file already exists */
 };
 
 #endif

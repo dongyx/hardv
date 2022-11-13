@@ -5,25 +5,24 @@
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
-#include "siglock.h"
 #include "apperr.h"
 #include "applim.h"
 #include "learn.h"
-#include "legacy_v1.h"
+#include "ctab.h"
 
 static void help(FILE *fp);
 static void pversion(FILE *fp);
 static void report(char *fname);
+static int safechk(char *fname);
 
 int main(int argc, char **argv)
 {
 	struct learnopt opt;
 	char *envnow;
 	time_t now;
-	int ch, conv1;
+	int ch;
 
 	srand(time(NULL));
-	siglock(SIGLOCK_INIT, SIGHUP, SIGINT, SIGTERM, SIGTSTP, 0);
 	if ((envnow = getenv("HARDV_NOW"))) {
 		if (parsetm(envnow, &now) == -1) {
 			aeprint(envnow);
@@ -33,12 +32,8 @@ int main(int argc, char **argv)
 		now = time(NULL);
 	memset(&opt, 0, sizeof opt);
 	opt.maxn = -1;
-	conv1 = 0;
-	while ((ch = getopt(argc, argv, "1hvern:")) != -1)
+	while ((ch = getopt(argc, argv, "hvern:")) != -1)
 		switch (ch) {
-		case '1':
-			conv1 = 1;
-			break;
 		case 'e':
 			opt.exact = 1;
 			break;
@@ -69,13 +64,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	while (*argv) {
-		if (conv1) {
-			if (conv_1to2(*argv) == -1) {
-				report(*argv);
-				return 1;
-			}
-		}
-		else if (learn(*argv, now, &opt) == -1) {
+		if (safechk(*argv) == -1 ||
+			learn(*argv, now, &opt) == -1) {
 			report(*argv);
 			return 1;
 		}
@@ -88,7 +78,6 @@ static void help(FILE *fp)
 {
 	fputs("usage:\n", fp);
 	fputs("\thardv [options] file ...\n", fp);
-	fputs("\thardv -1 file ...\n", fp);
 	fputs("\thardv -h|-v\n", fp);
 	fputs("\n", fp);
 	fputs("options\n", fp);
@@ -96,8 +85,6 @@ static void help(FILE *fp)
 	fputs("-e	enable exact quiz time\n", fp);
 	fputs("-r	randomize the quiz order within a file\n", fp);
 	fputs("-n <n>	quiz at most <n> cards\n", fp);
-	fputs("-1	convert the file in the 1.x format to the "
-		"new format\n", fp);
 	fputs("-h	print this help information\n", fp);
 	fputs("-v	print version and building arguments\n", fp);
 }
@@ -118,9 +105,19 @@ static void pversion(FILE *fp)
 
 static void report(char *fname)
 {
+	if (apperr == AEEXBF) {
+		fprintf(stderr, "%s: %s\n",
+			aestr(apperr), getbname(fname));
+		fputs("\nThis may be caused by a previous crash "
+			"or simultaneous quiz/editing.\n"
+			"You should check the backup file "
+			"and recover the data.\n", stderr);
+		return;
+	}
 	if (apperr == AEBACKUP) {
 		aeprint(fname);
-		fprintf(stderr, "due to: %s\n", aestr(bakferr));
+		fprintf(stderr, "%s: %s\n", getbname(fname),
+			aestr(bakferr));
 		return;
 	}
 	if (lineno > 0)
@@ -133,4 +130,16 @@ static void report(char *fname)
 			"A backup file is created at %s, you should "
 			"check it and recover the data.\n", fname,
 			bakfname);
+}
+
+static int safechk(char *fname)
+{
+	char *bak;
+
+	bak = getbname(fname);
+	if (access(bak, F_OK) == 0) {
+		apperr = AEEXBF;
+		return -1;
+	}
+	return 0;
 }

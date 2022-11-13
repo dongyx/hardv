@@ -15,8 +15,8 @@
 #define TIMEFMT_P "%d-%d-%d %d:%d:%d %c%2d%2d"
 
 enum { SETF_CREAT = 1, SETF_EXCLD = 2 };
-static struct field *setfield(struct card *card, char *key, char *val,
-	int opt);
+static struct field *
+setfield(struct card *card, char *key, char *val, int opt);
 static char *getfield(struct card *card, char *key);
 static int gettime(struct card *card, char *key, time_t *tp);
 static int settime(struct card *card, char *key, time_t t);
@@ -258,36 +258,45 @@ char *normval(char *s, char *buf, int n)
 	return buf;
 }
 
-static struct field *setfield(struct card *card, char *key, char *val,
-	int opt)
+static struct field *
+setfield(struct card *card, char *key, char *val, int opt)
 {
 	struct field *i;
 
-	if (strlen(key) >= KEYSZ) { apperr = AEKEYSZ; return NULL; }
+	if (strlen(key) >= KEYSZ) {
+		apperr = AEKEYSZ;
+		return NULL;
+	}
 	for (i = card->field; i != NULL; i = i->next)
 		if (!strcmp(i->key, key)) {
 			if (opt & SETF_EXCLD) {
-				apperr = AEDUPKEY; return NULL;
+				apperr = AEDUPKEY;
+				return NULL;
 			}
 			break;
 		}
 	if (!i) {
 		if (!(opt & SETF_CREAT)) {
-			apperr = AEINVKEY; return NULL;
+			apperr = AEINVKEY;
+			return NULL;
 		}
 		if (!(i = malloc(sizeof *i))) {
-			apperr = AESYS; return NULL;
+			apperr = AESYS;
+			return NULL;
 		}
 		memset(i, 0, sizeof *i);
 		if (!(i->key = strdup(key))) {
-			free(i); apperr = AESYS; return NULL;
+			free(i);
+			apperr = AESYS;
+			return NULL;
 		}
 		i->next = card->field;
 		card->field = i;
 	}
 	free(i->val);
 	if (!(i->val = strdup(val))) {
-		apperr = AESYS; return NULL;
+		apperr = AESYS;
+		return NULL;
 	}
 	return i;
 }

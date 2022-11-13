@@ -9,7 +9,6 @@ hardv - flashcards quiz
 
 .nf
 \fBhardv\fR [\fIoptions\fR] \fIfile\fR ... 
-\fBhardv\fR \fB-1\fR \fIfile\fR ...
 \fBhardv\fR \fB-h\fR|\fB-v\fR
 .fi
 
@@ -45,6 +44,31 @@ A	#include <stdio.h>
 
 \fBhardv\fR may insert other fields after running,
 to record metadata.
+
+.SH OPTIONS
+
+.TP
+\fB-e
+Quiz a card only if the start time of the quiz is not earlier
+than the exact scheduled quiz time of the card;
+If this option is not specified, any card whose scheduled quiz time
+is earlier than or within today will be quizzed.
+
+.TP
+\fB-r
+Quiz cards within a file in a random order.
+
+.TP
+\fB-n \fIn\fR
+Quiz at most \fIn\fR cards.
+
+.TP
+\fB-h
+Print the brief help message.
+
+.TP
+\fB-v
+Print the version and building arguments.
 
 .SH INPUT FORMAT
 
@@ -208,35 +232,6 @@ take the \fBn\fR action in the standard quiz procedure.
 
 Otherwise, the effect is equivalent to
 take the \fBs\fR action in the standard quiz procedure.
-
-.SH OPTIONS
-
-.TP
-\fB-e
-Quiz a card only if the start time of the quiz is not earlier
-than the exact scheduled quiz time of the card;
-If this option is not specified, any card whose scheduled quiz time
-is earlier than or within today will be quizzed.
-
-.TP
-\fB-r
-Quiz cards within a file in a random order.
-
-.TP
-\fB-n \fIn\fR
-Quiz at most \fIn\fR cards.
-
-.TP
-\fB-1
-Convert \fIfile\fRs in the format of the 1.x version to the new format
-
-.TP
-\fB-h
-Print the brief help message.
-
-.TP
-\fB-v
-Print the version and building arguments.
 
 .SH ENVIRONMENT
 
