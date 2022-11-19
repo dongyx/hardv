@@ -2,8 +2,8 @@ hardv
 =====
 (/*hɑ:rd'vi:*/)
 
-`hardv` is a CLI flashcard app for UNIX-compatible systems,
-conforming to the UNIX philosophy.
+`hardv` is a CLI flashcard app for Unix-compatible systems,
+conforming to the Unix philosophy.
 
 - Almost everything can be customized,
 with any programming language you prefer.
@@ -23,15 +23,24 @@ E.g.:
 	and more.
 
 - The format of input files are
-easy to be parsed by both human and other UNIX utilities
+easy to be parsed by both human and other Unix utilities
 like `grep`/`cut`/`sed`/`awk`/...
 
 - Metadata like scheduled time is written back to input files;
 Thus all your data is in files created and managed by yourself;
 Nothing would prevent you from migration or uninstall.
 
-- It is a UNIX filter, although an interactive one.
+- It is a Unix filter, although an interactive one.
 That makes `hardv` easy to be called by other programs.
+
+By default, `hardv` runs in the memory-optimization mode.
+Only one card is loaded in the memory at the same time.
+The process consumes about 512KB to 1MB memory
+for cards with typical size in common systems.
+However, `hardv` allows you to turn it into the disk-optimization mode.
+The disk-optimization mode consumes less disk I/O,
+at the cost of loading all cards of a file into the memory.
+See the `-d` option in the man page `hardv(1)`.
 
 Getting Started
 ---------------

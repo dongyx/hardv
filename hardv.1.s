@@ -57,6 +57,16 @@ is earlier than or within today will be quizzed.
 .TP
 \fB-r
 Quiz cards within a file in a random order.
+This option implies the \fB-d\fR option.
+
+.TP
+\fB-d
+Optimize for disk I/O instead of memory usage.
+By default, \fBhardv\fR keeps only one card in the memory
+by using more disk I/O.
+With this option specified,
+\fBhardv\fR uses less disk I/O,
+but load all cards of a file into the memory.
 
 .TP
 \fB-n \fIn\fR
@@ -133,13 +143,14 @@ A       2
 You could modify the \fBPREV\fR and \fBNEXT\fR fields to manually tune
 the quiz time.
 
-If the card doesn't contain the \fBPREV\fR field
-or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
+If the card doesn't contain the \fBPREV\fR field,
 it will be reset to the start time of the current quiz.
 
-If the card doesn't contain the \fBNEXT\fR field
-or it's not later than \fB1970-01-01 00:00:00 +0000\fR,
+If the card doesn't contain the \fBNEXT\fR field,
 it will be reset to the start time of the current quiz.
+
+Both \fBPREV\fR and \fBNEXT\fR are required to be later than
+\fB1970-01-01 00:00:00 +0000\fR.
 
 A card is allowed to contain other fields not mentioned above, as long
 as the key consists of alphabets, digits and underlines.
@@ -259,6 +270,7 @@ A line in input files must be less than \fBLINESZ\fR bytes.
 .TP
 \fBNCARD\fR
 The number of cards in an input file can't exceed \fBNCARD\fR.
+This limitation is only enabled while the \fB-d\fR option is specified.
 
 .TP
 \fBNFIELD\fR

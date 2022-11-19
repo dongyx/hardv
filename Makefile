@@ -1,36 +1,23 @@
 .PHONY: targets clean install test tag
 
 CC = cc
+CFLAGS = -D_XOPEN_SOURCE=700
 INSTALL = install
 prefix = /usr/local
 bindir = $(prefix)/bin
 datarootdir = $(prefix)/share
 mandir = $(datarootdir)/man
-src = $(wildcard *.c)
-deps = $(src:.c=.d)
-objs = $(src:.c=.o)
 targets = hardv hardv.1
 
 targets: $(targets)
 
--include $(deps)
-
-hardv: $(objs)
-	$(CC) $(LDFLAGS) -o $@ $^
-
-main.o: main.c version LICENSE
+hardv: hardv.c
 	$(CC) $(CFLAGS) \
 		-DVERSION="\"`cat version`\"" \
 		-DCOPYRT="\"`grep -i 'copyright (c)' LICENSE`\"" \
-		-o $@ -c $<
+		-o $@ $^
 
-%.o: %.c
-	$(CC) $(CFLAGS) -o $@ -c $<
-
-%.d: %.c
-	@$(CC) -MM $< | sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' >$@
-
-hardv.1: hardv.man1 version LICENSE
+hardv.1: hardv.1.s version LICENSE
 	@echo building manpage...
 	@set -e; \
 	cp $< $@; \
@@ -54,7 +41,7 @@ test: $(targets)
 	echo all tests passed;
 
 clean:
-	@rm -rf $(targets) $(deps) $(objs) *.tmp
+	@rm -rf $(targets) *.tmp
 	@for i in test/*; do \
 		cd $$i;	\
 		./clean; \
