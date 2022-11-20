@@ -35,8 +35,6 @@ That makes `hardv` easy to be called by other programs.
 
 By default, `hardv` runs in the memory-optimization mode.
 Only one card is loaded in the memory at the same time.
-The process consumes about 512KB to 1MB memory
-for cards with typical size in common systems.
 However, `hardv` allows you to turn it into the disk-optimization mode.
 The disk-optimization mode consumes less disk I/O,
 at the cost of loading all cards of a file into the memory.
