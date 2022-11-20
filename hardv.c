@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <libgen.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -155,7 +156,7 @@ void help(FILE *fp, int ret)
 	fputs("\n", fp);
 	fputs("-e	enable exact quiz time\n", fp);
 	fputs("-r	randomize the quiz order within a file\n"
-			"this option implies -d\n" , fp);
+		"	this option implies -d\n" , fp);
 	fputs("-n <n>	quiz at most <n> cards\n", fp);
 	fputs("-d	optimize for disk i/o instead of memory\n", fp);
 	fputs("-h	print this help information\n", fp);
@@ -331,26 +332,37 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 
 char *mkswap(char *fn)
 {
+	static char *epsz = "file path too long";
 	static char sn[PATHSZ];
+	char pb[PATHSZ], *dn, *bn;
 	struct stat st;
 	int fd;
 
-	if (snprintf(sn, PATHSZ, "%s~", fn) >= PATHSZ)
-		fatal("file path too long");
+	strncpy(pb, fn, PATHSZ);
+	if (pb[PATHSZ-1])
+		fatal(epsz);
+	dn = dirname(pb);
+	/* dirname() may change the original string */
+	strncpy(pb, fn, PATHSZ);
+	bn = basename(pb);
+	if (snprintf(sn, PATHSZ, "%s/.%s.swp", dn, bn) >= PATHSZ)
+		fatal(epsz);
 	if (stat(fn, &st) == -1)
 		syserr(NULL);
 	if ((fd = open(sn, O_CREAT|O_EXCL, st.st_mode)) == -1) {
 		if (errno == EEXIST) {
 			fprintf(stderr,
-				"%s: The swap file %s is detected.\n"
+				"The swap file %s is detected. "
 				"This may be caused by "
 				"simultaneous quiz/editing, "
-				"or a previous crash.\n"
+				"or a previous crash. "
 				"If it's caused by a crash, "
-				"you should compare "
-				"the original file with the swap file, "
-				"to recover data\n",
-				progname, sn);
+				"you should "
+				"run a diff on the original file with "
+				"the swap file, "
+				"recover the data, "
+				"and delete the swap file.\n",
+				sn);
 			exit(-1);
 		}
 		syserr(NULL);
@@ -547,7 +559,7 @@ int loadcard(FILE *fp, struct card *card)
 			*vp = '\0';
 			s = strcspn(lb, "\n\t");
 			if (s >= KEYSZ)
-				parserr("field key too large");
+				parserr("key too large");
 			*stpncpy(k, lb, s) = '\0';
 			if (k[strspn(k, KCHAR)])
 				parserr("invalid key");
@@ -617,9 +629,11 @@ void dumperr(char *s)
 {
 	fprintf(stderr, "%s: %s\n", progname, s);
 	fprintf(stderr,
-		"The swap file %s is created, "
-		"You should compare the original file with it "
-		"to recover data\n",
+		"The swap file %s is created. "
+		"You should "
+		"run a diff on the original file with the swap file, "
+		"recover the data, "
+		"and delete the swap file.\n",
 		swapname);
 	exit(-1);
 }
