@@ -497,7 +497,7 @@ int loadcard(FILE *fp, struct card *card)
 	static char *enl = "too many lines";
 	static char *evf = "invalid value";
 	static char *evsz = "value too large";
-	static char lb[LINESZ], k[KEYSZ], v[VALSZ], *vp;
+	char lb[LINESZ], k[KEYSZ], v[VALSZ], *vp;
 	struct field *f;
 	size_t s, n;
 	int ch, nf, nq, na;
@@ -751,7 +751,7 @@ time_t tmparse(char *s)
 }
 
 /* in-place reverse the field list
- * update *f to the reverse first element
+ * update *f to the reversed first element
  * return the reversed last element
  */
 struct field *revfield(struct field **f)
