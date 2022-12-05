@@ -302,6 +302,8 @@ void lowmem(char *fn)
 		dumpcard(sp, &cb);
 		cp = NULL;
 		destrcard(&cb);
+		if (EOF == fflush(sp))
+			dumperr(strerror(errno));
 		sigprocmask(SIG_SETMASK, &oset, NULL);
 	}
 DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
