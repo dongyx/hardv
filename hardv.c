@@ -98,7 +98,7 @@ int isnow(struct card *card);
 void shuf(struct card *a[], int n);
 int isvalidf(struct field *f);
 time_t tmparse(char *s);
-struct field *revfield(struct field **f);
+struct field *revfield(struct field *f);
 void fatal(char *s); 
 void syserr(jmp_buf *j);
 time_t getdiff(struct card *card);
@@ -593,7 +593,7 @@ int loadcard(FILE *fp, struct card *card)
 			parserr("no mandatory field");
 		}
 		/* fields were installed in the revered order */
-		revfield(&card->field);
+		card->field = revfield(card->field);
 	}
 	return 1;
 }
@@ -750,21 +750,20 @@ time_t tmparse(char *s)
 	return ck;
 }
 
-/* in-place reverse the field list
- * update *f to the reversed first element
- * return the reversed last element
- */
-struct field *revfield(struct field **f)
+struct field *revfield(struct field *f)
 {
-	struct field *c, *n;
+	struct field *r;
+	struct field *swp;
 
-	c = *f;
-	if (c && (n = c->next)) {
-		revfield(&n)->next = c;
-		c->next = NULL;
-		*f = n;
+	/* r points to the reversed part, f points to the left part */
+	r = NULL;
+	while (f) {
+		swp = f->next;
+		f->next = r;
+		r = f;
+		f = swp;
 	}
-	return c;
+	return r;
 }
 
 void fatal(char *s)
