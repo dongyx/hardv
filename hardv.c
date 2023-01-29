@@ -53,7 +53,7 @@ char *filename, *swapname;
 int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;	/* block set, old set */
 jmp_buf jrmswp, jdump;
-int aborted;
+volatile int aborted;
 struct opt opt;
 int card1 = 1;
 int lineno;
@@ -214,10 +214,10 @@ void lowio(char *fn)
 			plan[np++] = card;
 	if (opt.rand)
 		shuf(plan, np);
+	sigprocmask(SIG_BLOCK, &bset, &oset);
 	/* if a signal in sigtab is delivered, jump to dump */
 	if (setjmp(jdump))
 		goto DUMP;
-	sigprocmask(SIG_BLOCK, &bset, &oset);
 	setsig(godump);
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 	for (i=0; opt.maxn && i<np; i++) {
@@ -254,7 +254,7 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 
 void lowmem(char *fn)
 {
-	struct card cb, *cp;
+	struct card cb, * volatile cp;
 	FILE *fp, *sp;
 	char *sn, lb[LINESZ];
 

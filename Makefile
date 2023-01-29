@@ -11,11 +11,11 @@ targets = hardv hardv.1
 
 targets: $(targets)
 
-hardv: hardv.c
+hardv: hardv.c version LICENSE
 	$(CC) $(CFLAGS) \
 		-DVERSION="\"`cat version`\"" \
 		-DCOPYRT="\"`grep -i 'copyright (c)' LICENSE`\"" \
-		-o $@ $^
+		-o $@ $<
 
 hardv.1: hardv.1.s version LICENSE
 	@echo building manpage...
