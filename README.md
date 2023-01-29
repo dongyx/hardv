@@ -1,8 +1,7 @@
-hardv
+HardV
 =====
-(/*hɑ:rd'vi:*/)
 
-`hardv` is a CLI flashcard app for Unix-compatible systems,
+The `hardv` program is a CLI flashcard app for Unix-compatible systems,
 conforming to the Unix philosophy.
 
 - Almost everything can be customized,
