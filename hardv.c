@@ -335,15 +335,14 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 char *mkswap(char *fn)
 {
 	static char *epsz = "file path too long";
-	static char sn[PATHSZ];
-	char pb[PATHSZ], *dn, *bn;
+	static char sn[PATHSZ], pb[PATHSZ], dn[PATHSZ], *bn;
 	struct stat st;
 	int fd;
 
 	strncpy(pb, fn, PATHSZ);
 	if (pb[PATHSZ-1])
 		fatal(epsz);
-	dn = dirname(pb);
+	strcpy(dn, dirname(pb));
 	/* dirname() may change the original string */
 	strncpy(pb, fn, PATHSZ);
 	bn = basename(pb);
