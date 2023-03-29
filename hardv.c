@@ -65,7 +65,7 @@ void help(FILE *fp, int ret);
 void pversion(FILE *fp, int ret);
 void lowio(char *fn);
 void lowmem(char *fn);
-char *mkswap(char *fn);
+FILE *mkswap(char *fn, char *sn);
 void stdquiz(struct card *card);
 void modquiz(struct card *card);
 void sety(struct card *card);
@@ -184,9 +184,8 @@ void pversion(FILE *fp, int ret)
 void lowio(char *fn)
 {
 	struct card ctab[NCARD], *plan[NCARD], *card;
-	char lb[LINESZ];
+	char lb[LINESZ], sn[PATHSZ];
 	FILE *fp, *sp;
-	char *sn;
 	int nc, np, i;
 
 	filename = fn;
@@ -221,9 +220,7 @@ void lowio(char *fn)
 			opt.maxn--;
 	}
 DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
-	sn = mkswap(fn);
-	if (!(sp = fopen(sn, "r+")))
-		syserr();
+	sp = mkswap(fn, sn);
 	for (card=ctab; card<ctab+nc; card++)
 		dumpcard(sp, card);
 	if (fflush(sp) == EOF)
@@ -251,7 +248,7 @@ void lowmem(char *fn)
 	 * it must be static or volatile. */
 	static struct card cb;
 	FILE *fp, *sp;
-	char *sn, lb[LINESZ];
+	char sn[PATHSZ], lb[LINESZ];
 
 	filename = fn;
 	if (!(fp = fopen(fn, "r")))
@@ -262,13 +259,7 @@ void lowmem(char *fn)
 		destrcard(&cb);
 	fseek(fp, SEEK_SET, 0);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
-	filename = fn;
-	sn = mkswap(fn);
-	/* use r+ for sp to avoid recreation */
-	if (!(sp = fopen(sn, "r+"))) {
-		unlink(sn);
-		syserr();
-	}
+	sp = mkswap(fn, sn);
 	if (setjmp(jdump))
 		goto DUMP;
 	setsig(godump);
@@ -317,10 +308,10 @@ DUMP:
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
-char *mkswap(char *fn)
+FILE *mkswap(char *fn, char *sn)
 {
 	static char *epsz = "file path too long\n";
-	static char sn[PATHSZ], pb[PATHSZ], dn[PATHSZ], *bn;
+	static char pb[PATHSZ], dn[PATHSZ], *bn;
 	struct stat st;
 	int fd;
 
@@ -335,7 +326,7 @@ char *mkswap(char *fn)
 		err(epsz);
 	if (stat(fn, &st) == -1)
 		syserr();
-	if ((fd = open(sn, O_CREAT|O_EXCL, st.st_mode)) == -1) {
+	if ((fd = open(sn, O_RDWR|O_CREAT|O_EXCL, st.st_mode)) == -1) {
 		if (errno == EEXIST)
 			err(	"The swap file %s is detected. "
 				"This may be caused by "
@@ -351,8 +342,7 @@ char *mkswap(char *fn)
 			);
 		syserr();
 	}
-	close(fd);
-	return sn;
+	return fdopen(fd, "r+");
 }
 
 void stdquiz(struct card *card)
