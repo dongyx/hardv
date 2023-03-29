@@ -1,8 +1,13 @@
-HardV
+hardv
 =====
 
-The `hardv` program is a CLI flashcard app for Unix-compatible systems,
-conforming to the Unix philosophy.
+`hardv` is a powerful flashcard program for Unix.
+The key features are listed below.
+
+- Although `hardv` is not a strict filter,
+in the default mode
+it reads user actions from the standard input and prints to the standard output.
+That makes `hardv` easy to be called by other programs.
 
 - Almost everything can be customized,
 with any programming language you prefer.
@@ -10,10 +15,12 @@ E.g.:
 
 	- You may configure it to a TUI program,
 	or to view images in a GUI window.
+
 	- `hardv` can open the editor;
 	Send the content you wrote
 	to an online judging system,
 	and determine the next quiz time by the judging result.
+
 	- It can be used to implement
 	keyboard shortcut practice,
 	cloze deletion,
@@ -23,14 +30,10 @@ E.g.:
 
 - The format of input files are
 easy to be parsed by both human and other Unix utilities
-like `grep`/`cut`/`sed`/`awk`/...
+like `grep`, `sed`, and `awk`.
 
 - Metadata like scheduled time is written back to input files;
-Thus all your data is in files created and managed by yourself;
-Nothing would prevent you from migration or uninstall.
-
-- It is a Unix filter, although an interactive one.
-That makes `hardv` easy to be called by other programs.
+Thus all your data is in files created and managed by yourself.
 
 By default, `hardv` runs in the memory-optimization mode.
 Only one card is loaded in the memory at the same time.
@@ -38,6 +41,17 @@ However, `hardv` allows you to turn it into the disk-optimization mode.
 The disk-optimization mode consumes less disk I/O,
 at the cost of loading all cards of a file into the memory.
 See the `-d` option in the man page `hardv(1)`.
+
+
+**Table of Contents**
+
+* [Getting Started](#getting-started)
+* [Customize Quizzes](#customize-quizzes)
+* [Installation](#installation)
+* [Input Format](#input-format)
+* [Usage](#usage)
+* [Following News](#following-news)
+
 
 Getting Started
 ---------------
@@ -68,7 +82,6 @@ Subsequent lines in the value are indented by a tab character.
 (See the [*Input Format*](#input-format) section)
 
 We could use `hardv` to run a quiz.
-(See the [*Installation*](#installation) section)
 	
 	$ hardv input.fc
 	...
@@ -105,10 +118,10 @@ See the man page `hardv(1)` for detail.
 
 To customize the quiz,
 a `MOD` field is required to be added to the card.
-See the [*Customize the Quiz*](#customize-the-quiz) section.
+See the [*Customize Quizzes*](#customize-quizzes) section.
 
-Customize the Quiz
-------------------
+Customize Quizzes
+-----------------
 
 If a card contains the `MOD` field,
 the customized quiz is used.
@@ -178,7 +191,7 @@ When we run `hardv` on this card, `recite` is called.
 	(recite) A: 0x800
 	Wrong! The answer is: 0x8000
 
-The mod can also be embedded in the input file,
+Mods can also be embedded in the input file,
 demonstrated by the following.
 
 	$ cat input.fc
@@ -266,10 +279,8 @@ for the full description of the input format.
 Usage
 -----
 
-Executing `hardv -h` prints a brief help.
-
+Calling `hardv --help` prints a brief help.
 Full description is documented in the man page `hardv(1)`.
-Typing `man hardv` to read.
 
 Following News
 --------------

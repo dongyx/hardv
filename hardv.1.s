@@ -8,8 +8,8 @@ hardv - flashcards quiz
 .SH SYNOPSIS
 
 .nf
-\fBhardv\fR [\fIoptions\fR] \fIfile\fR ... 
-\fBhardv\fR \fB-h\fR|\fB-v\fR
+\fBhardv\fR [\fIoptions\fR] \fIfile\fR... 
+\fBhardv\fR \fB--help\fR|\fB--version\fR
 .fi
 
 .SH DESCRIPTION
@@ -45,40 +45,94 @@ A	#include <stdio.h>
 \fBhardv\fR may insert other fields after running,
 to record metadata.
 
-.SH OPTIONS
+.SH STANDARD QUIZ PROCEDURE
+
+If the card doesn't contain the \fBMOD\fR field,
+the standard quiz procedure is used. 
+
+\fBhardv\fR prints the content of the \fBQ\fR field.
+The user tries to recall the corresponding \fBA\fR field
+and asks \fBhardv\fR to print it.
+There are three actions for a card the user can execute.
 
 .TP
-\fB-e
-Quiz a card only if the start time of the quiz is not earlier
-than the exact scheduled quiz time of the card;
-If this option is not specified, any card whose scheduled quiz time
-is earlier than or within today will be quizzed.
+1. \fBy\fR
+The user is able to recall the content;
+The next quiz time for this card will be scheduled at the double further
+time.
+Formally speaking, the new value of the \fBNEXT\fR field will be set to:
+
+\fISTART_TIME\fR + 2*(\fINEXT\fR - \fIPREV\fR)
+
+If \fINEXT\fR - \fIPREV\fR is less than 24 hours,
+it will be reset to 24 hours.
 
 .TP
-\fB-r
-Quiz cards within a file in a random order.
-This option implies the \fB-d\fR option.
+2. \fBn\fR
+The user is not able to recall the content;
+The next quiz time for this card will be scheduled at 24 hours later
+after the start time of the current quiz.
 
 .TP
-\fB-d
-Optimize for disk I/O instead of memory usage.
-By default, \fBhardv\fR keeps only one card in the memory
-by using more disk I/O.
-With this option specified,
-\fBhardv\fR uses less disk I/O,
-but load all cards of a file into the memory.
+3. \fBs\fR
+Skip the card;
+Nothing will be updated.
+
+.SH CUSTOMIZED QUIZ PROCEDURE
+
+If the card contains the \fBMOD\fR field,
+the customized quiz procedure is used.
+The value of the \fBMOD\fR field is executed by \fB/bin/sh -c\fR,
+with several environment variables set:
 
 .TP
-\fB-n \fIn\fR
-Quiz at most \fIn\fR cards.
+\fBHARDV_F_\fIkey\fR
+The original content (not normalized) of the \fIkey\fR field.
 
 .TP
-\fB-h
-Print the brief help message.
+\fBHARDV_Q\fR
+the normalized content of the \fBQ\fR field
 
 .TP
-\fB-v
-Print the version and building arguments.
+\fBHARDV_A\fR
+the normalized content of the \fBA\fR field
+
+.TP
+\fBHARDV_PREV\fR
+the \fBPREV\fR field in the form of the seconds since the Epoch
+
+.TP
+\fBHARDV_NEXT\fR
+the \fBNEXT\fR field in the form of the seconds since the Epoch
+
+.TP
+\fBHARDV_NOW\fR
+the quiz starting time in the form of the seconds since the Epoch
+
+.TP
+\fBHARDV_FIRST\fR
+If the card is the first quizzed card in the current quiz,
+it is set to \fB1\fR.
+Otherwise, it's set to the empty string.
+
+.RE
+
+The normalized content is the content without
+leading newlines, trailing newlines, and indent tabs.
+
+The original content of each field is stored in \fBHARDV_F_\fIkey\fR.
+For example,
+the original content of the \fBQ\fR field
+can be accessed by \fBHARDV_F_Q\fR.
+
+If the mod script exits with status \fB0\fR, the effect is equivalent to
+take the \fBy\fR action in the standard quiz procedure.
+
+If the mod script exits with status \fB1\fR, the effect is equivalent to
+take the \fBn\fR action in the standard quiz procedure.
+
+Otherwise, the effect is equivalent to
+take the \fBs\fR action in the standard quiz procedure.
 
 .SH INPUT FORMAT
 
@@ -159,90 +213,42 @@ for the system.
 They are allowed but not recommended, for specific meanings could be
 assigned to them in further versions.
 
-.SH STANDARD QUIZ PROCEDURE
-
-If the card doesn't contain the \fBMOD\fR field,
-the standard quiz procedure is used. 
-
-\fBhardv\fR prints the content of the \fBQ\fR field.
-The user tries to recall the corresponding \fBA\fR field
-and asks \fBhardv\fR to print it.
-There are three actions for a card the user can execute.
+.SH OPTIONS
 
 .TP
-1. \fBy\fR
-The user is able to recall the content;
-The next quiz time for this card will be scheduled at the double further
-time.
-Formally speaking, the new value of the \fBNEXT\fR field will be set to:
-
-\fISTART_TIME\fR + 2*(\fINEXT\fR - \fIPREV\fR)
-
-If \fINEXT\fR - \fIPREV\fR is less than 24 hours,
-it will be reset to 24 hours.
+\fB-e
+Quiz a card only if the start time of the quiz is not earlier
+than the exact scheduled quiz time of the card;
+If this option is not specified, any card whose scheduled quiz time
+is earlier than or within today will be quizzed.
 
 .TP
-2. \fBn\fR
-The user is not able to recall the content;
-The next quiz time for this card will be scheduled at 24 hours later
-after the start time of the current quiz.
+\fB-r
+Quiz cards within a file in a random order.
+This option implies the \fB-d\fR option.
 
 .TP
-3. \fBs\fR
-Skip the card;
-Nothing will be updated.
-
-.SH CUSTOMIZED QUIZ PROCEDURE
-
-If the card contains the \fBMOD\fR field,
-the customized quiz procedure is used.
-The value of the \fBMOD\fR field is executed by \fB/bin/sh -c\fR,
-with several environment variables set:
+\fB-d
+Optimize for disk I/O instead of memory usage.
+By default, \fBhardv\fR keeps only one card in the memory
+by using more disk I/O.
+With this option specified,
+\fBhardv\fR uses less disk I/O,
+but load all cards of a file into the memory.
 
 .TP
-\fBHARDV_Q\fR
-the normalized content of the \fBQ\fR field
+\fB-n \fIn\fR
+Quiz at most \fIn\fR cards.
 
 .TP
-\fBHARDV_A\fR
-the normalized content of the \fBA\fR field
+\fB--help
+Print the brief help message.
+This option shall appear alone.
 
 .TP
-\fBHARDV_PREV\fR
-the \fBPREV\fR field in the form of the seconds since the Epoch
-
-.TP
-\fBHARDV_NEXT\fR
-the \fBNEXT\fR field in the form of the seconds since the Epoch
-
-.TP
-\fBHARDV_NOW\fR
-the quiz starting time in the form of the seconds since the Epoch
-
-.TP
-\fBHARDV_FIRST\fR
-If the card is the first quizzed card in the current quiz,
-it is set to \fB1\fR.
-Otherwise, it's set to the empty string.
-
-.RE
-
-The normalized content is the original content without
-leading newlines, trailing newlines, and indent tabs.
-
-The original content of each field is stored in \fBHARDV_F_\fIkey\fR.
-For example,
-the original content of the \fBQ\fR field
-can be accessed by \fBHARDV_F_Q\fR.
-
-If the mod script exits with status \fB0\fR, the effect is equivalent to
-take the \fBy\fR action in the standard quiz procedure.
-
-If the mod script exits with status \fB1\fR, the effect is equivalent to
-take the \fBn\fR action in the standard quiz procedure.
-
-Otherwise, the effect is equivalent to
-take the \fBs\fR action in the standard quiz procedure.
+\fB--version
+Print the version and building arguments.
+This option shall appear alone.
 
 .SH ENVIRONMENT
 
@@ -252,11 +258,11 @@ If this environment variable is set,
 \fBhardv\fR uses it as the quiz starting time,
 instead of the current system time.
 The format of this variable is the same as of
-the \fBPREV\fR and \fBNEXT\fR field.
+the \fBPREV\fR and \fBNEXT\fR fields.
 
 .SH LIMITATION
 
-Running \fBhardv -v\fR prints several building arguments
+Calling \fBhardv --version\fR prints several building arguments
 which determine the limitation of data.
 
 .TP

@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#define PROGNAME "hardv"
 #define KCHAR	"abcdefghijklmnopqrstuvwxyz" \
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 		"0123456789_"
@@ -32,93 +33,98 @@
 #define PREV	"PREV"
 #define NEXT	"NEXT"
 
+struct opt {
+	int exact;
+	int inmem;
+	int rand;
+	int maxn;
+};
+
 struct field {
 	char *key;
 	char *val;
 	struct field *next;
 };
+
 struct card {
 	int leadnewl;
 	struct field *field;
 	char *sep;
 };
-struct opt {
-	int exact;
-	int lowio;
-	int rand;
-	int maxn;
-};
 
-char *progname = "hardv";
 char *filename;
 int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;	/* block set, old set */
 jmp_buf jdump;
-volatile int aborted;
+volatile int aborted;	/* why volatile: signal handler */
 struct opt opt;
 int card1 = 1;
 int lineno;
 time_t now;
 
 void init(int argc, char **argv);
+void inmem(char *fn);
+void indisk(char *fn);
 void help(FILE *fp, int ret);
-void pversion(FILE *fp, int ret);
-void lowio(char *fn);
-void lowmem(char *fn);
-FILE *mkswap(char *fn, char *sn);
+void version(FILE *fp, int ret);
 void stdquiz(struct card *card);
 void modquiz(struct card *card);
-void sety(struct card *card);
-void setn(struct card *card);
+void dump(int sig);
 int loadcard(FILE *fp, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
-void godump(int sig);
+void destrcard(struct card *card);
+void shuf(struct card *a[], int n);
+void sety(struct card *card);
+void setn(struct card *card);
+char *timev(time_t clock);
+char *getv(struct card *card, char *k);
+char *setv(struct card *card, char *k, char *v);
+int isvalidf(struct field *f);
+time_t getdiff(struct card *card);
+struct field *revfield(struct field *f);
+int isnow(struct card *card);
+void setsig(void (*rtn)(int));
+char *normv(char *s, char *buf, int n);
+int pindent(char *s);
+time_t tmparse(char *s);
+FILE *mkswap(char *fn, char *sn);
+void verr(char *fmt, va_list ap);
+void err(char *s, ...);
 void parserr(char *s);
-void dumperr(char *s);
+void syserr();
 
 int main(int argc, char **argv)
 {
-	/* opt and optind is set by init() */
+	/* opt and optind are set by init() */
 	init(argc, argv);
 	argv += optind;
 	argc -= optind;
 	while (*argv) {
-		if (opt.lowio)
-			lowio(*argv);	/* optimize for disk I/O */
+		if (opt.inmem)
+			inmem(*argv);	/* load data to memory */
 		else
-			lowmem(*argv);	/* optimize for memory */
+			indisk(*argv);	/* keep data in disk */
 		argv++;
 	}
 	return 0;
 }
 
-void setsig(void (*rtn)(int));
-void destrcard(struct card *card);
-char *normval(char *s, char *buf, int n);
-int isnow(struct card *card);
-void shuf(struct card *a[], int n);
-int isvalidf(struct field *f);
-time_t tmparse(char *s);
-struct field *revfield(struct field *f);
-void verr(char *fmt, va_list ap);
-void err(char *s, ...); 
-void syserr();
-time_t getdiff(struct card *card);
-char *timev(time_t clock);
-char *getv(struct card *card, char *k);
-char *setv(struct card *card, char *k, char *v);
-int pindent(char *s);
-
 void init(int argc, char *argv[])
 {
 	int ch, *sig;
 
+	if (argc < 2)
+		help(stderr, -1);
+	if (!strcmp(argv[1], "--help"))
+		help(stdout, 0);
+	if (!strcmp(argv[1], "--version"))
+		version(stdout, 0);
 	srand(getpid()^time(NULL));
 	if ((now = tmparse(getenv("HARDV_NOW"))) <= 0)
 		time(&now);
 	memset(&opt, 0, sizeof opt);
 	opt.maxn = -1;
-	while ((ch = getopt(argc, argv, "dhvern:")) != -1)
+	while ((ch = getopt(argc, argv, "dern:")) != -1)
 		switch (ch) {
 		case 'e':
 			opt.exact = 1;
@@ -126,17 +132,12 @@ void init(int argc, char *argv[])
 		case 'r':
 			opt.rand = 1;
 		case 'd':
-			opt.lowio = 1;
+			opt.inmem = 1;
 			break;
 		case 'n':
 			if ((opt.maxn = atoi(optarg)) <= 0)
 				help(stderr, -1);
 			break;
-		case 'h':
-			help(stdout, 0);
-		case 'v':
-			pversion(stdout, 0);
-		case '?':
 		default:
 			help(stderr, -1);
 		}
@@ -150,23 +151,22 @@ void init(int argc, char *argv[])
 
 void help(FILE *fp, int ret)
 {
-	fputs("usage:\n", fp);
-	fputs("\thardv [options] file ...\n", fp);
-	fputs("\thardv -h|-v\n", fp);
-	fputs("\n", fp);
-	fputs("options\n", fp);
-	fputs("\n", fp);
-	fputs("-e	enable exact quiz time\n", fp);
-	fputs("-r	randomize the quiz order within a file\n"
-		"	this option implies -d\n" , fp);
-	fputs("-n <n>	quiz at most <n> cards\n", fp);
-	fputs("-d	optimize for disk i/o instead of memory\n", fp);
-	fputs("-h	print this help information\n", fp);
-	fputs("-v	print version and building arguments\n", fp);
+	fputs("Usage:\n", fp);
+	fputs("\thardv [options] FILE...\n", fp);
+	fputs("\thardv --help|--version\n", fp);
+	fputs("Options:\n", fp);
+	fputs("\t-e	enable exact quiz time\n", fp);
+	fputs("\t-r	randomize the quiz order within a file\n"
+		"\t	this option implies -d\n" , fp);
+	fputs("\t-n N	quiz at most N cards\n", fp);
+	fputs("\t-d	optimize for disk i/o instead of memory\n", fp);
+	fputs("\t--help	print the brief help\n", fp);
+	fputs("\t--version\n", fp);
+	fputs("\t	print the version information\n", fp);
 	exit(ret);
 }
 
-void pversion(FILE *fp, int ret)
+void version(FILE *fp, int ret)
 {
 	fprintf(fp, "hardv %s\n", VERSION);
 	fprintf(fp, "%s\n", COPYRT);
@@ -181,7 +181,7 @@ void pversion(FILE *fp, int ret)
 	exit(ret);
 }
 
-void lowio(char *fn)
+void inmem(char *fn)
 {
 	struct card ctab[NCARD], *plan[NCARD], *card;
 	char lb[LINESZ], sn[PATHSZ];
@@ -207,7 +207,7 @@ void lowio(char *fn)
 	sigprocmask(SIG_BLOCK, &bset, &oset);
 	if (setjmp(jdump))
 		goto DUMP;
-	setsig(godump);
+	setsig(dump);
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 	for (i=0; opt.maxn && i<np; i++) {
 		card = plan[i];
@@ -242,11 +242,9 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
-void lowmem(char *fn)
+void indisk(char *fn)
 {
-	/* cb is updated between setjmp() and longjmp().
-	 * it must be static or volatile. */
-	static struct card cb;
+	static struct card cb; /* why static: longjmp */
 	FILE *fp, *sp;
 	char sn[PATHSZ], lb[LINESZ];
 
@@ -262,7 +260,7 @@ void lowmem(char *fn)
 	sp = mkswap(fn, sn);
 	if (setjmp(jdump))
 		goto DUMP;
-	setsig(godump);
+	setsig(dump);
 	lineno = 0;
 	while (opt.maxn && loadcard(fp, &cb)) {
 		if (cb.field && isnow(&cb)) {
@@ -351,8 +349,8 @@ void stdquiz(struct card *card)
 
 	if (!card1)
 		putchar('\n');
-	normval(getv(card, Q), ques, VALSZ);
-	normval(getv(card, A), answ, VALSZ);
+	normv(getv(card, Q), ques, VALSZ);
+	normv(getv(card, A), answ, VALSZ);
 	puts("Q:\n");
 	pindent(ques);
 	puts("\n");
@@ -405,9 +403,9 @@ void modquiz(struct card *card)
 	/* child */
 	if (pid == 0) {
 		strcpy(k, pfx);
-		normval(getv(card, MOD), mod, VALSZ);
-		normval(getv(card, Q), q, VALSZ);
-		normval(getv(card, A), a, VALSZ);
+		normv(getv(card, MOD), mod, VALSZ);
+		normv(getv(card, Q), q, VALSZ);
+		normv(getv(card, A), a, VALSZ);
 		sprintf(snext, "%ld", (long)tmparse(getv(card, NEXT)));
 		sprintf(sprev, "%ld", (long)tmparse(getv(card, PREV)));
 		sprintf(snow, "%ld", (long)now);
@@ -562,7 +560,7 @@ int loadcard(FILE *fp, struct card *card)
 			lineno = ol+card->leadnewl+1;
 			parserr("no mandatory field");
 		}
-		/* fields were installed in the revered order */
+		/* fields were installed in the reversed order */
 		card->field = revfield(card->field);
 	}
 	return 1;
@@ -583,7 +581,7 @@ void dumpcard(FILE *fp, struct card *card)
 		syserr();
 }
 
-void godump(int sig)
+void dump(int sig)
 {
 	aborted = sig;
 	longjmp(jdump, 1);
@@ -616,7 +614,7 @@ void destrcard(struct card *card)
 	}
 }
 
-char *normval(char *s, char *buf, int n)
+char *normv(char *s, char *buf, int n)
 {
 	char *sp, *bp;
 
@@ -725,8 +723,9 @@ struct field *revfield(struct field *f)
 
 void verr(char *fmt, va_list ap)
 {
-	fprintf(stderr, "%s: ", progname);
+	fprintf(stderr, "%s: ", PROGNAME);
 	vfprintf(stderr, fmt, ap);
+	exit(-1);
 }
 
 void err(char *fmt, ...)
@@ -735,13 +734,11 @@ void err(char *fmt, ...)
 
 	va_start(ap, fmt);
 	verr(fmt, ap);
-	va_end(ap);
-	exit(-1);
 }
 
 void syserr()
 {
-	perror(progname);
+	perror(PROGNAME);
 	exit(-1);
 }
 
