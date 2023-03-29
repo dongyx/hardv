@@ -223,7 +223,7 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 	sp = mkswap(fn, sn);
 	for (card=ctab; card<ctab+nc; card++)
 		dumpcard(sp, card);
-	if (fflush(sp) == EOF)
+	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
 		syserr();
 	if (!(fp = fopen(fn, "w")))
 		syserr();
@@ -231,6 +231,8 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 	while (fgets(lb, LINESZ, sp))
 		if (fputs(lb, fp) == EOF)
 			syserr();
+	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
+		syserr();
 	fclose(fp);
 	fclose(sp);
 	unlink(sn);
@@ -289,7 +291,7 @@ DUMP:
 		dumpcard(sp, &cb);
 		destrcard(&cb);
 	}
-	if (fflush(sp) == EOF)
+	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
 		syserr();
 	if (!(fp = freopen(fn, "w", fp)))
 		syserr();
@@ -297,6 +299,8 @@ DUMP:
 	while (fgets(lb, LINESZ, sp))
 		if (fputs(lb, fp) == EOF)
 			syserr();
+	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
+		syserr();
 	fclose(fp);
 	fclose(sp);
 	unlink(sn);
