@@ -53,7 +53,7 @@ char *progname = "hardv";
 char *filename;
 int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;	/* block set, old set */
-jmp_buf jparserr, jdump;
+jmp_buf jdump;
 volatile int aborted;
 struct opt opt;
 int card1 = 1;
