@@ -4,16 +4,12 @@ hardv
 `hardv` is a powerful flashcard program for Unix.
 The key features are listed below.
 
-- Although `hardv` is not a strict filter,
-in the default mode
-it reads user actions from the standard input and prints to the standard output.
-That makes `hardv` easy to be called by other programs.
-
 - Almost everything can be customized,
 with any programming language you prefer.
 E.g.:
 
-	- You may configure it to a TUI program,
+	- `hardv` runs in the CLI mode by default;
+	But you may configure it to a TUI program,
 	or to view images in a GUI window.
 
 	- `hardv` can open the editor;
@@ -34,6 +30,11 @@ like `grep`, `sed`, and `awk`.
 
 - Metadata like scheduled time is written back to input files;
 Thus all your data is in files created and managed by yourself.
+
+- Although `hardv` is not a strict filter,
+in the default mode
+it reads user actions from the standard input and prints to the standard output.
+That makes `hardv` easy to be called by other programs.
 
 By default, `hardv` runs in the memory-optimization mode.
 Only one card is loaded in the memory at the same time.
