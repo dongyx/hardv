@@ -4,6 +4,7 @@
 #include <libgen.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -49,10 +50,10 @@ struct opt {
 };
 
 char *progname = "hardv";
-char *filename, *swapname;
+char *filename;
 int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;	/* block set, old set */
-jmp_buf jrmswp, jdump;
+jmp_buf jparserr, jdump;
 volatile int aborted;
 struct opt opt;
 int card1 = 1;
@@ -99,8 +100,9 @@ void shuf(struct card *a[], int n);
 int isvalidf(struct field *f);
 time_t tmparse(char *s);
 struct field *revfield(struct field *f);
-void fatal(char *s); 
-void syserr(jmp_buf *j);
+void verr(char *fmt, va_list ap);
+void err(char *s, ...); 
+void syserr();
 time_t getdiff(struct card *card);
 char *timev(time_t clock);
 char *getv(struct card *card, char *k);
@@ -188,25 +190,14 @@ void lowio(char *fn)
 	int nc, np, i;
 
 	filename = fn;
-	swapname = sn = mkswap(fn);
-	if (setjmp(jrmswp)) {
-		unlink(sn);
-		exit(-1);
-	}
-	/* use r+ for sp to avoid recreation */
-	if (!(fp=fopen(fn, "r")) || !(sp=fopen(sn, "r+"))) {
-		perror(progname);
-		longjmp(jrmswp, 1);
-	}
+	if (!(fp = fopen(fn, "r")))
+		syserr();
 	lineno = 0;
 	nc = 0;
 	while (nc < NCARD && loadcard(fp, ctab+nc))
 		nc++;
-	if (!feof(fp)) {
-		fprintf(stderr,
-			"%s: too many cards in %s\n", progname, fn);
-		longjmp(jrmswp, 1);
-	}
+	if (!feof(fp))
+		err("too many cards in %s\n", fn);
 	fclose(fp);
 	np = 0;
 	for (card=ctab; card<ctab+nc; card++)
@@ -215,7 +206,6 @@ void lowio(char *fn)
 	if (opt.rand)
 		shuf(plan, np);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
-	/* if a signal in sigtab is delivered, jump to dump */
 	if (setjmp(jdump))
 		goto DUMP;
 	setsig(godump);
@@ -231,16 +221,19 @@ void lowio(char *fn)
 			opt.maxn--;
 	}
 DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
+	sn = mkswap(fn);
+	if (!(sp = fopen(sn, "r+")))
+		syserr();
 	for (card=ctab; card<ctab+nc; card++)
 		dumpcard(sp, card);
 	if (fflush(sp) == EOF)
-		dumperr(strerror(errno));
+		syserr();
 	if (!(fp = fopen(fn, "w")))
-		dumperr(strerror(errno));
+		syserr();
 	fseek(sp, 0, SEEK_SET);
 	while (fgets(lb, LINESZ, sp))
 		if (fputs(lb, fp) == EOF)
-			dumperr(strerror(errno));
+			syserr();
 	fclose(fp);
 	fclose(sp);
 	unlink(sn);
@@ -254,75 +247,67 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 
 void lowmem(char *fn)
 {
-	struct card cb, * volatile cp;
+	/* cb is updated between setjmp() and longjmp().
+	 * it must be static or volatile. */
+	static struct card cb;
 	FILE *fp, *sp;
 	char *sn, lb[LINESZ];
 
 	filename = fn;
-	swapname = sn = mkswap(fn);
-	if (setjmp(jrmswp)) {
-		unlink(sn);
-		exit(-1);
-	}
-	/* use r+ for sp to avoid recreation */
-	if (!(fp=fopen(fn, "r")) || !(sp=fopen(sn, "r+"))) {
-		perror(progname);
-		longjmp(jrmswp, 1);
-	}
+	if (!(fp = fopen(fn, "r")))
+		syserr();
 	/* syntax checking */
 	lineno = 0;
 	while (loadcard(fp, &cb))
 		destrcard(&cb);
 	fseek(fp, SEEK_SET, 0);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
+	filename = fn;
+	sn = mkswap(fn);
+	/* use r+ for sp to avoid recreation */
+	if (!(sp = fopen(sn, "r+"))) {
+		unlink(sn);
+		syserr();
+	}
 	if (setjmp(jdump))
 		goto DUMP;
 	setsig(godump);
-	cp = NULL;
-	sigprocmask(SIG_SETMASK, &oset, NULL);
 	lineno = 0;
-	while (opt.maxn) {
-		sigprocmask(SIG_BLOCK, &bset, &oset);
-		if (!loadcard(fp, &cb)) {
+	while (opt.maxn && loadcard(fp, &cb)) {
+		if (cb.field && isnow(&cb)) {
 			sigprocmask(SIG_SETMASK, &oset, NULL);
-			break;
-		}
-		cp = &cb;
-		sigprocmask(SIG_SETMASK, &oset, NULL);
-		if (cp->field && isnow(cp)) {
-			if (getv(cp, MOD))
-				modquiz(cp);
+			if (getv(&cb, MOD))
+				modquiz(&cb);
 			else
-				stdquiz(cp);
+				stdquiz(&cb);
+			sigprocmask(SIG_BLOCK, &bset, &oset);
 			if (opt.maxn > 0)
 				opt.maxn--;
 			card1 = 0;
 		}
-		sigprocmask(SIG_BLOCK, &bset, &oset);
 		dumpcard(sp, &cb);
-		cp = NULL;
 		destrcard(&cb);
 		if (EOF == fflush(sp))
-			dumperr(strerror(errno));
-		sigprocmask(SIG_SETMASK, &oset, NULL);
+			syserr();
+
 	}
-DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
-	if (cp) {
-		dumpcard(sp, cp);
-		destrcard(cp);
-	}
+	sigprocmask(SIG_SETMASK, &oset, NULL);
+DUMP:
+	sigprocmask(SIG_BLOCK, &bset, &oset);
+	if (aborted)
+		dumpcard(sp, &cb);
 	while (loadcard(fp, &cb)) {
 		dumpcard(sp, &cb);
 		destrcard(&cb);
 	}
 	if (fflush(sp) == EOF)
-		dumperr(strerror(errno));
-	if (!(fp=freopen(fn, "w", fp)))
-		dumperr(strerror(errno));
+		syserr();
+	if (!(fp = freopen(fn, "w", fp)))
+		syserr();
 	fseek(sp, 0, SEEK_SET);
 	while (fgets(lb, LINESZ, sp))
 		if (fputs(lb, fp) == EOF)
-			dumperr(strerror(errno));
+			syserr();
 	fclose(fp);
 	fclose(sp);
 	unlink(sn);
@@ -334,26 +319,25 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 
 char *mkswap(char *fn)
 {
-	static char *epsz = "file path too long";
+	static char *epsz = "file path too long\n";
 	static char sn[PATHSZ], pb[PATHSZ], dn[PATHSZ], *bn;
 	struct stat st;
 	int fd;
 
 	strncpy(pb, fn, PATHSZ);
 	if (pb[PATHSZ-1])
-		fatal(epsz);
+		err(epsz);
 	strcpy(dn, dirname(pb));
 	/* dirname() may change the original string */
 	strncpy(pb, fn, PATHSZ);
 	bn = basename(pb);
 	if (snprintf(sn, PATHSZ, "%s/.%s.swp", dn, bn) >= PATHSZ)
-		fatal(epsz);
+		err(epsz);
 	if (stat(fn, &st) == -1)
-		syserr(NULL);
+		syserr();
 	if ((fd = open(sn, O_CREAT|O_EXCL, st.st_mode)) == -1) {
-		if (errno == EEXIST) {
-			fprintf(stderr,
-				"The swap file %s is detected. "
+		if (errno == EEXIST)
+			err(	"The swap file %s is detected. "
 				"This may be caused by "
 				"simultaneous quiz/editing, "
 				"or a previous crash. "
@@ -363,10 +347,9 @@ char *mkswap(char *fn)
 				"the swap file, "
 				"recover the data, "
 				"and delete the swap file.\n",
-				sn);
-			exit(-1);
-		}
-		syserr(NULL);
+				sn
+			);
+		syserr();
 	}
 	close(fd);
 	return sn;
@@ -391,7 +374,7 @@ CHECK:
 		if (feof(stdin))
 			longjmp(jdump, 1);
 		if (errno != EINTR)
-			syserr(&jdump);
+			syserr();
 	}
 	if (strcmp(in, "\n"))
 		goto CHECK;
@@ -406,7 +389,7 @@ QUERY:
 		if (feof(stdin))
 			longjmp(jdump, 1);
 		if (errno != EINTR)
-			syserr(&jdump);
+			syserr();
 	}
 	act = strstr("y\nn\ns\n", in);
 	if (!act || *act == '\n')
@@ -428,7 +411,7 @@ void modquiz(struct card *card)
 	int stat;
 
 	if ((pid=fork()) == -1)
-		syserr(&jdump);
+		syserr();
 	/* child */
 	if (pid == 0) {
 		strcpy(k, pfx);
@@ -448,19 +431,19 @@ void modquiz(struct card *card)
 			setenv("HARDV_NOW",	snow,	1) == -1 ||
 			setenv("HARDV_FIRST",	first,	1) == -1
 		)
-			syserr(NULL);
+			syserr();
 		for (f=card->field; f!=NULL; f=f->next) {
 			strcpy(&k[sizeof(pfx)-1], f->key);
 			if (setenv(k, f->val, 1) == -1)
-				syserr(NULL);
+				syserr();
 		}
 		if (execl(SHELL, SHELL, "-c", mod, NULL) == -1)
-			syserr(NULL);
+			syserr();
 	}
 	/* parent */
 	while (waitpid(pid, &stat, 0) == -1)
 		if (errno != EINTR)
-			syserr(&jdump);
+			syserr();
 	switch (WEXITSTATUS(stat)) {
 	case 0: sety(card); break;
 	case 1: setn(card); break;
@@ -474,10 +457,8 @@ void sety(struct card *card)
 	/* signal atomic */
 	sigprocmask(SIG_BLOCK, &bset, &oset);
 	diff = getdiff(card);
-	if (!setv(card, PREV, timev(now)))
-		syserr(&jdump);
-	if (!setv(card, NEXT, timev(now + 2*diff)))
-		syserr(&jdump);
+	setv(card, PREV, timev(now));
+	setv(card, NEXT, timev(now + 2*diff));
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
@@ -485,10 +466,8 @@ void setn(struct card *card)
 {
 	/* signal atomic */
 	sigprocmask(SIG_BLOCK, &bset, &oset);
-	if (!setv(card, PREV, timev(now)))
-		syserr(&jdump);
-	if (!setv(card, NEXT, timev(now+DAY)))
-		syserr(&jdump);
+	setv(card, PREV, timev(now));
+	setv(card, NEXT, timev(now+DAY));
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
@@ -517,7 +496,7 @@ int loadcard(FILE *fp, struct card *card)
 		card->leadnewl++;
 	}
 	if (ungetc(ch, fp) != ch)
-		syserr(&jrmswp);
+		syserr();
 	vp = NULL;
 	f = NULL;
 	nq = na = 0;
@@ -531,7 +510,7 @@ int loadcard(FILE *fp, struct card *card)
 		if (lb[0] == '%') {
 			/* end */
 			if (!(card->sep = strdup(lb)))
-				syserr(&jrmswp);
+				syserr();
 			break;
 		} else if (lb[0] == '\t' || lb[0] == '\n') {
 			/* successive lines in value */
@@ -548,7 +527,7 @@ int loadcard(FILE *fp, struct card *card)
 				f->key = strdup(k);
 				f->val = strdup(v);
 				if (!f->key || !f->val)
-					syserr(&jrmswp);
+					syserr();
 				if (!isvalidf(f)) {
 					lineno = kl;
 					parserr(evf);
@@ -570,7 +549,7 @@ int loadcard(FILE *fp, struct card *card)
 			if (!strcmp(k, Q)) nq++;
 			if (!strcmp(k, A)) na++;
 			if (!(f = malloc(sizeof *f)))
-				syserr(&jrmswp);
+				syserr();
 			f->next = card->field;
 			card->field = f;
 			if (!lb[s])
@@ -581,10 +560,10 @@ int loadcard(FILE *fp, struct card *card)
 		}
 	}
 	if (ferror(fp))
-		syserr(&jrmswp);
+		syserr();
 	if (f) {
 		if (!(f->key = strdup(k)) || !(f->val = strdup(v)))
-			syserr(&jrmswp);
+			syserr();
 		if (!isvalidf(f)) {
 			lineno = kl;
 			parserr(evf);
@@ -606,12 +585,12 @@ void dumpcard(FILE *fp, struct card *card)
 
 	for (i = 0; i < card->leadnewl; i++)
 		if (fputc('\n', fp) == EOF)
-			dumperr(strerror(errno));
+			syserr();
 	for (f = card->field; f != NULL; f = f->next)
 		if (fprintf(fp, "%s%s", f->key, f->val) < 0)
-			dumperr(strerror(errno));
+			syserr();
 	if (card->sep && fputs(card->sep, fp) == EOF)
-		dumperr(strerror(errno));
+		syserr();
 }
 
 void godump(int sig)
@@ -623,19 +602,6 @@ void godump(int sig)
 void parserr(char *s)
 {
 	fprintf(stderr, "%s, line %d: %s\n", filename, lineno, s);
-	longjmp(jrmswp, 1);
-}
-
-void dumperr(char *s)
-{
-	fprintf(stderr, "%s: %s\n", progname, s);
-	fprintf(stderr,
-		"The swap file %s is created. "
-		"You should "
-		"run a diff on the original file with the swap file, "
-		"recover the data, "
-		"and delete the swap file.\n",
-		swapname);
 	exit(-1);
 }
 
@@ -767,17 +733,25 @@ struct field *revfield(struct field *f)
 	return r;
 }
 
-void fatal(char *s)
+void verr(char *fmt, va_list ap)
 {
-	fprintf(stderr, "%s: %s\n", progname, s);
+	fprintf(stderr, "%s: ", progname);
+	vfprintf(stderr, fmt, ap);
+}
+
+void err(char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	verr(fmt, ap);
+	va_end(ap);
 	exit(-1);
 }
 
-void syserr(jmp_buf *j)
+void syserr()
 {
 	perror(progname);
-	if (j)
-		longjmp(*j, 1);
 	exit(-1);
 }
 
@@ -821,41 +795,23 @@ char *getv(struct card *card, char *k)
 char *setv(struct card *card, char *k, char *v)
 {
 	struct field *i;
-	char *vb;
-	int newf;
 
-	newf = 0;
 	for (i=card->field; i; i=i->next)
 		if (!strcmp(i->key, k))
 			break;
 	if (!i) {
-		newf = 1;
 		if (!(i=malloc(sizeof *i)))
-			return NULL;
+			syserr();
 		memset(i, 0, sizeof *i);
-		if (!(i->key=strdup(k))) {
-			free(i);
-			return NULL;
-		}
-		/* we must delay the linkage,
-		 * since if we do this now and strdup(v) fails,
-		 * the list will be corrupted.
-		 * thus the caller can't dump cards before exit. */
-	}
-	if (!(vb=strdup(v))) {
-		if (newf) {
-			free(i->key);
-			free(i);
-		}
-		return NULL;
-	}
-	free(i->val);
-	i->val = vb;
-	if (newf) {
-		/* delay linkage */
+		if (!(i->key=strdup(k)))
+			syserr();
+		i->val = NULL;
 		i->next = card->field;
 		card->field = i;
 	}
+	free(i->val);
+	if (!(i->val=strdup(v)))
+		syserr();
 	return i->val;
 }
 
