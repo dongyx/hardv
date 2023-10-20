@@ -35,7 +35,6 @@
 
 struct opt {
 	int exact;
-	int inmem;
 	int rand;
 	int maxn;
 };
@@ -63,8 +62,7 @@ int lineno;
 time_t now;
 
 void init(int argc, char **argv);
-void inmem(char *fn);
-void indisk(char *fn);
+void learn(char *fn);
 void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
 void stdquiz(struct card *card);
@@ -100,10 +98,7 @@ int main(int argc, char **argv)
 	argv += optind;
 	argc -= optind;
 	while (*argv) {
-		if (opt.inmem)
-			inmem(*argv);	/* load data to memory */
-		else
-			indisk(*argv);	/* keep data in disk */
+		learn(*argv);
 		argv++;
 	}
 	return 0;
@@ -131,8 +126,6 @@ void init(int argc, char *argv[])
 			break;
 		case 'r':
 			opt.rand = 1;
-		case 'd':
-			opt.inmem = 1;
 			break;
 		case 'n':
 			if ((opt.maxn = atoi(optarg)) <= 0)
@@ -156,10 +149,8 @@ void help(FILE *fp, int ret)
 	fputs("\thardv --help|--version\n", fp);
 	fputs("Options:\n", fp);
 	fputs("\t-e	enable exact quiz time\n", fp);
-	fputs("\t-r	randomize the quiz order within a file\n"
-		"\t	this option implies -d\n" , fp);
+	fputs("\t-r	randomize the quiz order within a file\n", fp);
 	fputs("\t-n N	quiz at most N cards\n", fp);
-	fputs("\t-d	optimize for disk i/o instead of memory\n", fp);
 	fputs("\t--help	print the brief help\n", fp);
 	fputs("\t--version\n", fp);
 	fputs("\t	print the version information\n", fp);
@@ -181,7 +172,7 @@ void version(FILE *fp, int ret)
 	exit(ret);
 }
 
-void inmem(char *fn)
+void learn(char *fn)
 {
 	struct card ctab[NCARD], *plan[NCARD], *card;
 	char lb[LINESZ], sn[PATHSZ];
@@ -240,72 +231,6 @@ DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
 		exit(127+aborted);
 	for (card=ctab; card<ctab+nc; card++)
 		destrcard(card);
-	setsig(SIG_DFL);
-	sigprocmask(SIG_SETMASK, &oset, NULL);
-}
-
-void indisk(char *fn)
-{
-	static struct card cb; /* why static: longjmp */
-	FILE *fp, *sp;
-	char sn[PATHSZ], lb[LINESZ];
-
-	filename = fn;
-	if (!(fp = fopen(fn, "r")))
-		syserr();
-	/* syntax checking */
-	lineno = 0;
-	while (loadcard(fp, &cb))
-		destrcard(&cb);
-	fseek(fp, SEEK_SET, 0);
-	sigprocmask(SIG_BLOCK, &bset, &oset);
-	sp = mkswap(fn, sn);
-	if (setjmp(jdump))
-		goto DUMP;
-	setsig(dump);
-	lineno = 0;
-	while (opt.maxn && loadcard(fp, &cb)) {
-		if (cb.field && isnow(&cb)) {
-			sigprocmask(SIG_SETMASK, &oset, NULL);
-			if (getv(&cb, MOD))
-				modquiz(&cb);
-			else
-				stdquiz(&cb);
-			sigprocmask(SIG_BLOCK, &bset, &oset);
-			if (opt.maxn > 0)
-				opt.maxn--;
-			card1 = 0;
-		}
-		dumpcard(sp, &cb);
-		destrcard(&cb);
-		if (EOF == fflush(sp))
-			syserr();
-
-	}
-	sigprocmask(SIG_SETMASK, &oset, NULL);
-DUMP:
-	sigprocmask(SIG_BLOCK, &bset, &oset);
-	if (aborted)
-		dumpcard(sp, &cb);
-	while (loadcard(fp, &cb)) {
-		dumpcard(sp, &cb);
-		destrcard(&cb);
-	}
-	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
-		syserr();
-	if (!(fp = freopen(fn, "w", fp)))
-		syserr();
-	fseek(sp, 0, SEEK_SET);
-	while (fgets(lb, LINESZ, sp))
-		if (fputs(lb, fp) == EOF)
-			syserr();
-	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
-		syserr();
-	fclose(fp);
-	fclose(sp);
-	unlink(sn);
-	if (aborted)
-		exit(127+aborted);
 	setsig(SIG_DFL);
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }

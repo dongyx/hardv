@@ -225,16 +225,6 @@ is earlier than or within today will be quizzed.
 .TP
 \fB-r
 Quiz cards within a file in a random order.
-This option implies the \fB-d\fR option.
-
-.TP
-\fB-d
-Optimize for disk I/O instead of memory usage.
-By default, \fBhardv\fR keeps only one card in the memory
-by using more disk I/O.
-With this option specified,
-\fBhardv\fR uses less disk I/O,
-but load all cards of a file into the memory.
 
 .TP
 \fB-n \fIn\fR
