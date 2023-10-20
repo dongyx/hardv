@@ -1,18 +1,18 @@
-hardv
+HardV
 =====
 
-`hardv` is a powerful flashcard program for Unix.
+HardV is a powerful flashcard program for Unix.
 The key features are listed below.
 
 - Almost everything can be customized,
 with any programming language you prefer.
 E.g.:
 
-	- `hardv` runs in the CLI mode by default;
+	- HardV runs in the CLI mode by default;
 	But you may configure it to a TUI program,
 	or to view images in a GUI window.
 
-	- `hardv` can open the editor;
+	- HardV can open the editor;
 	Send the content you wrote
 	to an online judging system,
 	and determine the next quiz time by the judging result.
@@ -31,18 +31,10 @@ like `grep`, `sed`, and `awk`.
 - Metadata like scheduled time is written back to input files;
 Thus all your data is in files created and managed by yourself.
 
-- Although `hardv` is not a strict filter,
+- Although HardV is not a strict filter,
 in the default mode
 it reads user actions from the standard input and prints to the standard output.
-That makes `hardv` easy to be called by other programs.
-
-By default, `hardv` runs in the memory-optimization mode.
-Only one card is loaded in the memory at the same time.
-However, `hardv` allows you to turn it into the disk-optimization mode.
-The disk-optimization mode consumes less disk I/O,
-at the cost of loading all cards of a file into the memory.
-See the `-d` option in the man page `hardv(1)`.
-
+That makes HardV easy to be called by other programs.
 
 **Table of Contents**
 
@@ -50,14 +42,13 @@ See the `-d` option in the man page `hardv(1)`.
 * [Customize Quizzes](#customize-quizzes)
 * [Installation](#installation)
 * [Input Format](#input-format)
-* [Usage](#usage)
-* [Following News](#following-news)
-
+* [Documentation](#documentation)
+* [Credits](#credits)
 
 Getting Started
 ---------------
 
-First of all, let's see the standard quiz of `hardv`.
+First of all, let's see the standard quiz of HardV.
 
 Suppose we have a file `input.fc` consists of flashcards.
 
@@ -82,7 +73,7 @@ The key and value of a field in a card are separated by a tab character.
 Subsequent lines in the value are indented by a tab character.
 (See the [*Input Format*](#input-format) section)
 
-We could use `hardv` to run a quiz.
+We could use HardV to run a quiz.
 	
 	$ hardv input.fc
 	...
@@ -126,10 +117,10 @@ Customize Quizzes
 
 If a card contains the `MOD` field,
 the customized quiz is used.
-The value of the `MOD` field is passed to `/bin/sh -c` by `hardv`,
+The value of the `MOD` field is passed to `/bin/sh -c` by HardV,
 and several environment variables are set,
 for the mod can read information about the card.
-The exit status of the mod determines the action `hardv` would take
+The exit status of the mod determines the action HardV would take
 for the card.
 
 Let's write a simple mod called `recite`.
@@ -137,11 +128,11 @@ When a card with this mod is quizzed,
 it prints the content of the `Q` field,
 then the user is required to copy the `A` field exactly.
 If the answer is correctly copied,
-this mod notifies `hardv` that the user is able to recall the card.
+this mod notifies HardV that the user is able to recall the card.
 If the answer is incorrectly copied,
-this mod notifies `hardv` that the user is unable to recall the card.
+this mod notifies HardV that the user is unable to recall the card.
 The user can type `!` to skip the card,
-and this mod notifies `hardv` to update nothing.
+and this mod notifies HardV to update nothing.
 
 We create a shell script named `/usr/loca/bin/recite`
 with the following content and make it executable.
@@ -212,7 +203,7 @@ demonstrated by the following.
 	A	0x80
 
 This could be very handy if you want to wrap existed programs to a
-`hardv` mod.
+HardV mod.
 
 See the man page `hardv(1)` for detail about how to implement a mod.
 
@@ -277,14 +268,17 @@ demonstrated by the following.
 See the man page `hardv(1)`
 for the full description of the input format.
 
-Usage
------
+Documentation
+-------------
 
 Calling `hardv --help` prints a brief help.
 Full description is documented in the man page `hardv(1)`.
 
-Following News
---------------
+Credits
+-------
 
-- <https://www.dyx.name>
-- [@dongyx2](https://twitter.com/dongyx2)
+HardV was created by [DONG Yuxuan](https://www.dyx.name) in 2022.
+
+Other code contributors are listed below:
+
+- Song, Yuanjia
