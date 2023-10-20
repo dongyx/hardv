@@ -1,7 +1,7 @@
 HardV
 =====
 
-HardV is a powerful flashcard program for Unix.
+HardV is a powerful flashcard program for Unix/Linux.
 The key features are listed below.
 
 - Almost everything can be customized,
