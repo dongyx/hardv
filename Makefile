@@ -1,34 +1,29 @@
-.PHONY: targets clean install test tag
+.PHONY: all clean install test lint fuzz
 
 CC = cc
-CFLAGS = -D_XOPEN_SOURCE=700
 INSTALL = install
 prefix = /usr/local
 bindir = $(prefix)/bin
 datarootdir = $(prefix)/share
 mandir = $(datarootdir)/man
-targets = hardv hardv.1
+all = hardv hardv.1
 
-targets: $(targets)
+all: $(all)
 
-hardv: hardv.c version LICENSE
-	$(CC) $(CFLAGS) \
-		-DVERSION="\"`cat version`\"" \
-		-DCOPYRT="\"`grep -i 'copyright (c)' LICENSE`\"" \
-		-o $@ $<
+hardv: hardv.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-hardv.1: hardv.1.s version LICENSE
+hardv.1: hardv.1.s hardv
 	@echo building manpage...
 	@set -e; \
 	cp $< $@; \
 	printf '\n.SH VERSION\n\n' >>$@; \
 	printf '.nf\n' >>$@; \
-	printf 'hardv ' >>$@; \
-	cat version >>$@; \
-	grep -i 'copyright (c)' LICENSE >>$@; \
+	printf 'HardV ' >>$@; \
+	./hardv --version | head -n1 | cut -d' ' -f2 >>$@; \
 	printf '.fi\n' >>$@;
 
-test: $(targets)
+test: $(all)
 	@set -e; \
 	PATH="`pwd`:$$PATH"; \
 	for i in test/*; do \
@@ -41,36 +36,42 @@ test: $(targets)
 	echo all tests passed;
 
 clean:
-	@rm -rf $(targets) *.tmp
+	@rm -rf $(all) lint fuzz *.tmp
 	@for i in test/*; do \
 		cd $$i;	\
 		./clean; \
 		cd ../..; \
 	done
 		
-install: $(targets)
+install: $(all)
 	@$(INSTALL) -d $(bindir)
 	$(INSTALL) hardv $(bindir)
 	@$(INSTALL) -d $(mandir)/man1
 	$(INSTALL) hardv.1 $(mandir)/man1
 
-tag:
+lint:
 	@set -e; \
-	if [ "$$(git status -s)" ]; then \
-		echo workspace not clean; \
-		exit 1; \
-	fi; \
-	if grep dev version; then \
-		echo this is a dev version; \
-		exit 1; \
-	fi; \
-	printf 'tag: '; \
-	cat version; \
-	git tag "v$$(cat version)"
+	rm -rf lint; \
+	mkdir -p lint; \
+	cp hardv.c hardv.1.s Makefile lint; \
+	cd lint; \
+	make \
+	'CFLAGS= \
+	-pedantic-errors \
+	-Wextra \
+	-Wno-error'
 
-arch:
+fuzz:
 	@set -e; \
-	mkdir -p release; \
-	for i in `git tag`; do \
-		git archive $$i | gzip >release/hardv-$${i#v}.tar.gz; \
-	done;
+	rm -rf fuzz; \
+	mkdir -p fuzz; \
+	cp -r hardv.c hardv.1.s test Makefile fuzz; \
+	cd fuzz; \
+	make test \
+	'CFLAGS= \
+	-pedantic-errors \
+	-Wextra \
+	-Wno-error \
+	-O3 \
+	-fno-sanitize-recover \
+	-fsanitize=address,undefined'

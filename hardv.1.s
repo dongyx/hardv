@@ -283,3 +283,11 @@ The field value must be less than \fBVALSZ\fR bytes.
 .TP
 \fBPATHSZ\fR
 The path of \fIfile\fR must be less than \fBPATHSZ\fR bytes.
+
+.SH FURTHER DOCUMENTATION
+
+See <https://github.com/dongyx/hardv>.
+
+.SH AUTHORS
+
+HardV was created by DONG Yuxuan <https://www.dyx.name> in 2022.

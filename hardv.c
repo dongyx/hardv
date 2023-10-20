@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE 700
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -14,7 +15,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
-#define PROGNAME "hardv"
 #define KCHAR	"abcdefghijklmnopqrstuvwxyz" \
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 		"0123456789_"
@@ -51,7 +51,7 @@ struct card {
 	char *sep;
 };
 
-char *filename;
+char *progname, *filename;
 int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;	/* block set, old set */
 jmp_buf jdump;
@@ -86,7 +86,6 @@ char *normv(char *s, char *buf, int n);
 int pindent(char *s);
 time_t tmparse(char *s);
 FILE *mkswap(char *fn, char *sn);
-void verr(char *fmt, va_list ap);
 void err(char *s, ...);
 void parserr(char *s);
 void syserr();
@@ -97,10 +96,8 @@ int main(int argc, char **argv)
 	init(argc, argv);
 	argv += optind;
 	argc -= optind;
-	while (*argv) {
-		learn(*argv);
-		argv++;
-	}
+	while (*argv)
+		learn(*argv++);
 	return 0;
 }
 
@@ -108,6 +105,7 @@ void init(int argc, char *argv[])
 {
 	int ch, *sig;
 
+	progname = argv[0];
 	if (argc < 2)
 		help(stderr, -1);
 	if (!strcmp(argv[1], "--help"))
@@ -145,8 +143,8 @@ void init(int argc, char *argv[])
 void help(FILE *fp, int ret)
 {
 	fputs("Usage:\n", fp);
-	fputs("\thardv [options] FILE...\n", fp);
-	fputs("\thardv --help|--version\n", fp);
+	fprintf(fp, "\t%s [options] FILE...\n", progname);
+	fprintf(fp, "\t%s --help|--version\n", progname);
 	fputs("Options:\n", fp);
 	fputs("\t-e	enable exact quiz time\n", fp);
 	fputs("\t-r	randomize the quiz order within a file\n", fp);
@@ -159,8 +157,12 @@ void help(FILE *fp, int ret)
 
 void version(FILE *fp, int ret)
 {
-	fprintf(fp, "hardv %s\n", VERSION);
-	fprintf(fp, "%s\n", COPYRT);
+	fputs("HardV 3.2.0 <https://github.com/dongyx/hardv>\n", fp);
+	fputs(
+		"Copyright (c) "
+		"2022 DONG Yuxuan <https://www.dyx.name>\n",
+		fp
+	);
 	fputc('\n', fp);
 	fprintf(fp, "NLINE:	%d\n", NLINE);
 	fprintf(fp, "LINESZ:	%d\n", LINESZ);
@@ -396,9 +398,9 @@ int loadcard(FILE *fp, struct card *card)
 	static char *evsz = "value too large";
 	char lb[LINESZ], k[KEYSZ], v[VALSZ], *vp;
 	struct field *f;
-	size_t s, n;
+	int s, n;
 	int ch, nf, nq, na;
-	int kl;	/* starting line of current field */
+	int kl = -1;	/* starting line of current field */
 	int ol; /* lineno swap */
 
 	ol = lineno;
@@ -518,7 +520,14 @@ void dump(int sig)
 
 void parserr(char *s)
 {
-	fprintf(stderr, "%s, line %d: %s\n", filename, lineno, s);
+	fprintf(
+		stderr,
+		"%s: %s: line %d: %s\n",
+		progname,
+		filename,
+		lineno,
+		s
+	);
 	exit(-1);
 }
 
@@ -620,17 +629,19 @@ time_t tmparse(char *s)
 
 	if (!s)
 		return 0;
-	while (isspace(*s))
+	while (isspace((unsigned char)*s))
 		s++;
 	memset(&tm, 0, sizeof tm);
 	if (!(s = strptime(s, "%Y-%m-%d %H:%M:%S", &tm))
-		|| (sscanf(s, " %[+-]%2u%2u", &sg, &hr, &mi) != 3))
+		|| (sscanf(s, " %c%2u%2u", &sg, &hr, &mi) != 3))
 		return 0;
 	ck = timegm(&tm);
 	if (sg == '+')
 		ck -= mi*60 + hr*3600L;
-	else
+	else if (sg == '-')
 		ck += mi*60 + hr*3600L;
+	else
+		return 0;
 	return ck;
 }
 
@@ -650,24 +661,20 @@ struct field *revfield(struct field *f)
 	return r;
 }
 
-void verr(char *fmt, va_list ap)
-{
-	fprintf(stderr, "%s: ", PROGNAME);
-	vfprintf(stderr, fmt, ap);
-	exit(-1);
-}
-
 void err(char *fmt, ...)
 {
 	va_list ap;
 
 	va_start(ap, fmt);
-	verr(fmt, ap);
+	fprintf(stderr, "%s: ", progname);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+	exit(-1);
 }
 
 void syserr()
 {
-	perror(PROGNAME);
+	perror(progname);
 	exit(-1);
 }
 
@@ -688,7 +695,7 @@ char *timev(time_t clock)
 {
 	static char buf[VALSZ];
 	struct tm *lc;
-	size_t n;
+	int n;
 
 	lc = localtime(&clock);
 	buf[0] = '\t';

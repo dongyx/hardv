@@ -1,5 +1,7 @@
 /hardv
 /hardv.1
+/fuzz
+/lint
 .DS_Store
 *.tmp
 *.swp
