@@ -61,7 +61,6 @@ int card1 = 1;
 int lineno;
 time_t now;
 
-void init(int argc, char **argv);
 void learn(char *fn);
 void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
@@ -91,17 +90,6 @@ void parserr(char *s);
 void syserr();
 
 int main(int argc, char **argv)
-{
-	/* opt and optind are set by init() */
-	init(argc, argv);
-	argv += optind;
-	argc -= optind;
-	while (*argv)
-		learn(*argv++);
-	return 0;
-}
-
-void init(int argc, char *argv[])
 {
 	int ch, *sig;
 
@@ -138,6 +126,11 @@ void init(int argc, char *argv[])
 	for (sig=sigtab; *sig; sig++)
 		sigaddset(&bset, *sig);
 	sigaddset(&bset, SIGTSTP);
+	argv += optind;
+	argc -= optind;
+	while (*argv)
+		learn(*argv++);
+	return 0;
 }
 
 void help(FILE *fp, int ret)
