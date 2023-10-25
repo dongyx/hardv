@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#define MAXSIG	32
 #define KCHAR	"abcdefghijklmnopqrstuvwxyz" \
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 		"0123456789_"
@@ -52,10 +53,10 @@ struct card {
 };
 
 char *progname, *filename;
-int sigtab[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
-sigset_t bset, oset;	/* block set, old set */
-jmp_buf jdump;
-volatile int aborted;	/* why volatile: signal handler */
+int abortsigs[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
+sigset_t bset, oset;
+struct sigaction oact[MAXSIG];
+volatile sig_atomic_t aborted;
 struct opt opt;
 int card1 = 1;
 int lineno;
@@ -66,7 +67,10 @@ void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
 void stdquiz(struct card *card);
 void modquiz(struct card *card);
-void dump(int sig);
+void setsig(void (*func)(int));
+void unsetsig(void);
+void onabort(int signo);
+void dump(struct card *ctab, int n);
 int loadcard(FILE *fp, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
 void destrcard(struct card *card);
@@ -80,7 +84,6 @@ int isvalidf(struct field *f);
 time_t getdiff(struct card *card);
 struct field *revfield(struct field *f);
 int isnow(struct card *card);
-void setsig(void (*rtn)(int));
 char *normv(char *s, char *buf, int n);
 int pindent(char *s);
 time_t tmparse(char *s);
@@ -122,15 +125,18 @@ int main(int argc, char **argv)
 		}
 	if (optind >= argc)
 		help(stderr, -1);
+	sigprocmask(SIG_SETMASK, NULL, &oset);
 	sigemptyset(&bset);
-	for (sig=sigtab; *sig; sig++)
+	for (sig=abortsigs; *sig; sig++) {
 		sigaddset(&bset, *sig);
+		sigaction(*sig, NULL, &oact[*sig]);
+	}
 	sigaddset(&bset, SIGTSTP);
 	argv += optind;
 	argc -= optind;
-	while (*argv)
+	while (*argv && !aborted)
 		learn(*argv++);
-	return 0;
+	return aborted ? 127 + aborted : 0;
 }
 
 void help(FILE *fp, int ret)
@@ -169,9 +175,9 @@ void version(FILE *fp, int ret)
 
 void learn(char *fn)
 {
-	struct card ctab[NCARD], *plan[NCARD], *card;
-	char lb[LINESZ], sn[PATHSZ];
-	FILE *fp, *sp;
+	static struct card ctab[NCARD], *plan[NCARD];
+	struct card *card;
+	FILE *fp;
 	int nc, np, i;
 
 	filename = fn;
@@ -190,12 +196,11 @@ void learn(char *fn)
 			plan[np++] = card;
 	if (opt.rand)
 		shuf(plan, np);
-	sigprocmask(SIG_BLOCK, &bset, &oset);
-	if (setjmp(jdump))
-		goto DUMP;
-	setsig(dump);
+	sigprocmask(SIG_BLOCK, &bset, NULL);
+	aborted = 0;
+	setsig(onabort);
 	sigprocmask(SIG_SETMASK, &oset, NULL);
-	for (i=0; opt.maxn && i<np; i++) {
+	for (i=0; !aborted && opt.maxn && i<np; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
 			modquiz(card);
@@ -205,29 +210,64 @@ void learn(char *fn)
 		if (opt.maxn > 0)
 			opt.maxn--;
 	}
-DUMP:	sigprocmask(SIG_BLOCK, &bset, &oset);
-	sp = mkswap(fn, sn);
+	sigprocmask(SIG_BLOCK, &bset, NULL);
+	dump(ctab, nc);
+	unsetsig();
+	sigprocmask(SIG_SETMASK, &oset, NULL);
 	for (card=ctab; card<ctab+nc; card++)
+		destrcard(card);
+}
+
+void setsig(void (*func)(int))
+{
+	struct sigaction act;
+	int *sig;
+
+	act.sa_handler = func;
+	act.sa_flags = 0;
+#ifdef SA_INTERRUPT
+	act.sa_flags |= SA_INTERRUPT;
+#endif
+	sigemptyset(&act.sa_mask);
+	for (sig=abortsigs; *sig; sig++)
+		sigaddset(&act.sa_mask, *sig);
+	for (sig=abortsigs; *sig; sig++)
+		sigaction(*sig, &act, NULL);
+}
+
+void unsetsig(void)
+{
+	int *sig;
+
+	for (sig=abortsigs; *sig; sig++)
+		sigaction(*sig, &oact[*sig], NULL);
+}
+
+void onabort(int signo)
+{
+	aborted = signo;
+}
+
+void dump(struct card *ctab, int n)
+{
+	FILE *fp, *sp;
+	char swapname[PATHSZ];
+	struct card *card;
+
+	sp = mkswap(filename, swapname);
+	for (card=ctab; card<ctab+n; card++)
 		dumpcard(sp, card);
 	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
 		syserr();
-	if (!(fp = fopen(fn, "w")))
+	fclose(sp);
+	if (!(fp = fopen(filename, "w")))
 		syserr();
-	fseek(sp, 0, SEEK_SET);
-	while (fgets(lb, LINESZ, sp))
-		if (fputs(lb, fp) == EOF)
-			syserr();
+	for (card=ctab; card<ctab+n; card++)
+		dumpcard(fp, card);
 	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
 		syserr();
 	fclose(fp);
-	fclose(sp);
-	unlink(sn);
-	if (aborted)
-		exit(127+aborted);
-	for (card=ctab; card<ctab+nc; card++)
-		destrcard(card);
-	setsig(SIG_DFL);
-	sigprocmask(SIG_SETMASK, &oset, NULL);
+	unlink(swapname);
 }
 
 FILE *mkswap(char *fn, char *sn)
@@ -283,8 +323,8 @@ CHECK:
 	fputs("Press <ENTER> to check the answer.\n", stdout);
 	fflush(stdout);
 	while (!fgets(in, LINESZ, stdin)) {
-		if (feof(stdin))
-			longjmp(jdump, 1);
+		if (aborted)
+			return;
 		if (errno != EINTR)
 			syserr();
 	}
@@ -298,8 +338,8 @@ QUERY:
 	fputs("Do you recall? (y/n/s)\n", stdout);
 	fflush(stdout);
 	while (!fgets(in, LINESZ, stdin)) {
-		if (feof(stdin))
-			longjmp(jdump, 1);
+		if (aborted)
+			return;
 		if (errno != EINTR)
 			syserr();
 	}
@@ -366,21 +406,15 @@ void sety(struct card *card)
 {
 	time_t diff;
 
-	/* signal atomic */
-	sigprocmask(SIG_BLOCK, &bset, &oset);
 	diff = getdiff(card);
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now + 2*diff));
-	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 void setn(struct card *card)
 {
-	/* signal atomic */
-	sigprocmask(SIG_BLOCK, &bset, &oset);
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now+DAY));
-	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 /* return 1 for success, 0 for EOF */
@@ -505,12 +539,6 @@ void dumpcard(FILE *fp, struct card *card)
 		syserr();
 }
 
-void dump(int sig)
-{
-	aborted = sig;
-	longjmp(jdump, 1);
-}
-
 void parserr(char *s)
 {
 	fprintf(
@@ -522,14 +550,6 @@ void parserr(char *s)
 		s
 	);
 	exit(-1);
-}
-
-void setsig(void (*rtn)(int))
-{
-	int *sig;
-
-	for (sig=sigtab; *sig; sig++)
-		signal(*sig, rtn);
 }
 
 void destrcard(struct card *card)
