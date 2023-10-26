@@ -57,6 +57,8 @@ int abortsigs[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
 sigset_t bset, oset;
 struct sigaction oact[MAXSIG];
 volatile sig_atomic_t aborted;
+struct card ctab[NCARD]; 
+int ncard, dirty;
 struct opt opt;
 int card1 = 1;
 int lineno;
@@ -70,7 +72,7 @@ void modquiz(struct card *card);
 void setsig(void (*func)(int));
 void unsetsig(void);
 void onabort(int signo);
-void dump(struct card *ctab, int n);
+void dump(void);
 int loadcard(FILE *fp, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
 void destrcard(struct card *card);
@@ -175,7 +177,7 @@ void version(FILE *fp, int ret)
 
 void learn(char *fn)
 {
-	static struct card ctab[NCARD], *plan[NCARD];
+	struct card *plan[NCARD];
 	struct card *card;
 	FILE *fp;
 	int nc, np, i;
@@ -184,22 +186,20 @@ void learn(char *fn)
 	if (!(fp = fopen(fn, "r")))
 		syserr();
 	lineno = 0;
-	nc = 0;
-	while (nc < NCARD && loadcard(fp, ctab+nc))
-		nc++;
+	ncard = 0;
+	while (ncard < NCARD && loadcard(fp, ctab+ncard))
+		ncard++;
 	if (!feof(fp))
 		err("too many cards in %s\n", fn);
 	fclose(fp);
 	np = 0;
-	for (card=ctab; card<ctab+nc; card++)
+	for (card=ctab; card<ctab+ncard; card++)
 		if (card->field && isnow(card))
 			plan[np++] = card;
 	if (opt.rand)
 		shuf(plan, np);
-	sigprocmask(SIG_BLOCK, &bset, NULL);
 	aborted = 0;
 	setsig(onabort);
-	sigprocmask(SIG_SETMASK, &oset, NULL);
 	for (i=0; !aborted && opt.maxn && i<np; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
@@ -210,11 +210,9 @@ void learn(char *fn)
 		if (opt.maxn > 0)
 			opt.maxn--;
 	}
-	sigprocmask(SIG_BLOCK, &bset, NULL);
-	dump(ctab, nc);
+	dump();
 	unsetsig();
-	sigprocmask(SIG_SETMASK, &oset, NULL);
-	for (card=ctab; card<ctab+nc; card++)
+	for (card=ctab; card<ctab+ncard; card++)
 		destrcard(card);
 }
 
@@ -223,6 +221,7 @@ void setsig(void (*func)(int))
 	struct sigaction act;
 	int *sig;
 
+	sigprocmask(SIG_BLOCK, &bset, NULL);
 	act.sa_handler = func;
 	act.sa_flags = 0;
 #ifdef SA_INTERRUPT
@@ -233,14 +232,17 @@ void setsig(void (*func)(int))
 		sigaddset(&act.sa_mask, *sig);
 	for (sig=abortsigs; *sig; sig++)
 		sigaction(*sig, &act, NULL);
+	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 void unsetsig(void)
 {
 	int *sig;
 
+	sigprocmask(SIG_BLOCK, &bset, NULL);
 	for (sig=abortsigs; *sig; sig++)
 		sigaction(*sig, &oact[*sig], NULL);
+	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 void onabort(int signo)
@@ -248,32 +250,37 @@ void onabort(int signo)
 	aborted = signo;
 }
 
-void dump(struct card *ctab, int n)
+void dump(void)
 {
 	FILE *fp, *sp;
 	char swapname[PATHSZ];
 	struct card *card;
 
+	if (!dirty)
+		return;
+	dirty = 0;
+	sigprocmask(SIG_BLOCK, &bset, NULL);
 	sp = mkswap(filename, swapname);
-	for (card=ctab; card<ctab+n; card++)
+	for (card=ctab; card<ctab+ncard; card++)
 		dumpcard(sp, card);
 	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
 		syserr();
 	fclose(sp);
 	if (!(fp = fopen(filename, "w")))
 		syserr();
-	for (card=ctab; card<ctab+n; card++)
+	for (card=ctab; card<ctab+ncard; card++)
 		dumpcard(fp, card);
 	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
 		syserr();
 	fclose(fp);
 	unlink(swapname);
+	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 FILE *mkswap(char *fn, char *sn)
 {
 	static char *epsz = "file path too long\n";
-	static char pb[PATHSZ], dn[PATHSZ], *bn;
+	char pb[PATHSZ], dn[PATHSZ], *bn;
 	struct stat st;
 	int fd;
 
@@ -309,7 +316,8 @@ FILE *mkswap(char *fn, char *sn)
 
 void stdquiz(struct card *card)
 {
-	char in[LINESZ], ques[VALSZ], answ[VALSZ], *act;
+	char in[LINESZ], ques[VALSZ], answ[VALSZ];
+	char *act;
 
 	if (!card1)
 		putchar('\n');
@@ -354,10 +362,10 @@ QUERY:
 
 void modquiz(struct card *card)
 {
+	char mod[VALSZ], q[VALSZ], a[VALSZ];
 	char pfx[] = "HARDV_F_";
 	char sprev[64], snext[64], snow[64], first[2];
 	char k[KEYSZ + sizeof(pfx) - 1];
-	char mod[VALSZ], q[VALSZ], a[VALSZ];
 	struct field *f;
 	pid_t pid;
 	int stat;
@@ -389,8 +397,8 @@ void modquiz(struct card *card)
 			if (setenv(k, f->val, 1) == -1)
 				syserr();
 		}
-		if (execl(SHELL, SHELL, "-c", mod, NULL) == -1)
-			syserr();
+		execl(SHELL, SHELL, "-c", mod, NULL);
+		syserr();
 	}
 	/* parent */
 	while (waitpid(pid, &stat, 0) == -1)
@@ -409,12 +417,14 @@ void sety(struct card *card)
 	diff = getdiff(card);
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now + 2*diff));
+	dirty = 1;
 }
 
 void setn(struct card *card)
 {
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now+DAY));
+	dirty = 1;
 }
 
 /* return 1 for success, 0 for EOF */
@@ -441,8 +451,7 @@ int loadcard(FILE *fp, struct card *card)
 		lineno++;
 		card->leadnewl++;
 	}
-	if (ungetc(ch, fp) != ch)
-		syserr();
+	ungetc(ch, fp);
 	vp = NULL;
 	f = NULL;
 	nq = na = 0;
@@ -492,8 +501,10 @@ int loadcard(FILE *fp, struct card *card)
 			for (f=card->field; f; f=f->next)
 				if (!strcmp(f->key, k))
 					parserr("duplicated key");
-			if (!strcmp(k, Q)) nq++;
-			if (!strcmp(k, A)) na++;
+			if (!strcmp(k, Q))
+				nq++;
+			if (!strcmp(k, A))
+				na++;
 			if (!(f = malloc(sizeof *f)))
 				syserr();
 			f->next = card->field;
@@ -541,6 +552,7 @@ void dumpcard(FILE *fp, struct card *card)
 
 void parserr(char *s)
 {
+	dump();
 	fprintf(
 		stderr,
 		"%s: %s: line %d: %s\n",
@@ -678,6 +690,7 @@ void err(char *fmt, ...)
 {
 	va_list ap;
 
+	dump();
 	va_start(ap, fmt);
 	fprintf(stderr, "%s: ", progname);
 	vfprintf(stderr, fmt, ap);
@@ -687,6 +700,7 @@ void err(char *fmt, ...)
 
 void syserr()
 {
+	dump();
 	perror(progname);
 	exit(-1);
 }
