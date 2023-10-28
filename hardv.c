@@ -49,46 +49,44 @@ struct card {
 	char *sep;
 };
 
-char *progname, *filename;
-struct opt opt;
-int card1 = 1;
-int lineno;
-time_t now;
+char *progname;
 
-void learn(char *fn);
+void learn(char *fn, time_t now, struct opt opt);
 void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
-int stdquiz(struct card *card);
-int modquiz(struct card *card);
+int stdquiz(struct card *card, time_t now, int card1);
+int modquiz(struct card *card, time_t now, int card1);
 void dump(struct card *ctab, int n, char *fn);
-int loadcard(FILE *fp, struct card *card);
+int loadcard(char *fn, FILE *fp, int *lineno, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
 void destrcard(struct card *card);
 void shuf(struct card *a[], int n);
-void sety(struct card *card);
-void setn(struct card *card);
+void sety(struct card *card, time_t now);
+void setn(struct card *card, time_t now);
 char *timev(time_t clock);
 char *getv(struct card *card, char *k);
 char *setv(struct card *card, char *k, char *v);
 int isvalidf(struct field *f);
-time_t getdiff(struct card *card);
+time_t getdiff(struct card *card, time_t now);
 struct field *revfield(struct field *f);
-int isnow(struct card *card);
+int isnow(struct card *card, time_t now, int exact);
 char *normv(char *s, char *buf, int n);
 int pindent(char *s);
 time_t tmparse(char *s);
 FILE *mkswap(char *fn, char *sn);
 void err(char *s, ...);
-void parserr(char *s);
+void parserr(char *fn, int lineno, char *s);
 void syserr();
 
 int main(int argc, char **argv)
 {
+	struct opt opt;
 	int ch, *sig;
+	time_t now;
 
 	progname = argv[0];
 	if (argc < 2)
-		help(stderr, -1);
+		help(stderr, 1);
 	if (!strcmp(argv[1], "--help"))
 		help(stdout, 0);
 	if (!strcmp(argv[1], "--version"))
@@ -108,17 +106,17 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			if ((opt.maxn = atoi(optarg)) <= 0)
-				help(stderr, -1);
+				help(stderr, 1);
 			break;
 		default:
-			help(stderr, -1);
+			help(stderr, 1);
 		}
 	if (optind >= argc)
-		help(stderr, -1);
+		help(stderr, 1);
 	argv += optind;
 	argc -= optind;
 	while (*argv)
-		learn(*argv++);
+		learn(*argv++, now, opt);
 	return 0;
 }
 
@@ -156,41 +154,41 @@ void version(FILE *fp, int ret)
 	exit(ret);
 }
 
-void learn(char *fn)
+void learn(char *fn, time_t now, struct opt opt)
 {
+	static int card1 = 1;
 	struct card ctab[NCARD];
 	struct card *plan[NCARD];
 	struct card *card;
 	FILE *fp;
-	int nc, np, i, dirty;
+	int nc, np, i, dirty, lineno;
 
 	if (!(fp = fopen(fn, "r")))
 		syserr();
-	filename = fn;
 	lineno = 0;
 	nc = 0;
-	while (nc < NCARD && loadcard(fp, ctab+nc))
+	while (nc < NCARD && loadcard(fn, fp, &lineno, &ctab[nc]))
 		nc++;
 	if (!feof(fp))
 		err("too many cards in %s\n", fn);
 	fclose(fp);
 	np = 0;
 	for (card = ctab; card < ctab + nc; card++)
-		if (card->field && isnow(card))
+		if (card->field && isnow(card, now, opt.exact))
 			plan[np++] = card;
 	if (opt.rand)
 		shuf(plan, np);
 	for (i = 0; opt.maxn && i < np; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
-			dirty = modquiz(card);
+			dirty = modquiz(card, now, card1);
 		else
-			dirty = stdquiz(card);
+			dirty = stdquiz(card, now, card1);
 		if (dirty)
 			dump(ctab, nc, fn);
-		card1 = 0;
 		if (opt.maxn > 0)
 			opt.maxn--;
+		card1 = 0;
 	}
 }
 
@@ -217,7 +215,7 @@ void dump(struct card *ctab, int n, char *fn)
 		fclose(sp) == EOF
 	)
 		syserr();
-	if (!(fp = fopen(filename, "w")))
+	if (!(fp = fopen(fn, "w")))
 		syserr();
 	for (card = ctab; card < ctab + n; card++)
 		dumpcard(fp, card);
@@ -265,7 +263,7 @@ FILE *mkswap(char *fn, char *sn)
 	return fdopen(fd, "r+");
 }
 
-int stdquiz(struct card *card)
+int stdquiz(struct card *card, time_t now, int card1)
 {
 	char in[LINESZ], ques[VALSZ], answ[VALSZ];
 	char *act;
@@ -305,16 +303,16 @@ int stdquiz(struct card *card)
 	} while (!act || *act == '\n');
 	switch (*act) {
 	case 'y':
-		sety(card);
+		sety(card, now);
 		return 1;
 	case 'n':
-		setn(card);
+		setn(card, now);
 		return 1;
 	}
 	return 0;
 }
 
-int modquiz(struct card *card)
+int modquiz(struct card *card, time_t now, int card1)
 {
 	char mod[VALSZ], q[VALSZ], a[VALSZ];
 	char pfx[] = "HARDV_F_";
@@ -359,31 +357,31 @@ int modquiz(struct card *card)
 			syserr();
 	switch (WEXITSTATUS(st)) {
 	case 0:
-		sety(card);
+		sety(card, now);
 		return 1;
-	case 1: setn(card);
+	case 1: setn(card, now);
 		return 1;
 	}
 	return 0;
 }
 
-void sety(struct card *card)
+void sety(struct card *card, time_t now)
 {
 	time_t diff;
 
-	diff = getdiff(card);
+	diff = getdiff(card, now);
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now + 2*diff));
 }
 
-void setn(struct card *card)
+void setn(struct card *card, time_t now)
 {
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now+DAY));
 }
 
 /* return 1 for success, 0 for EOF */
-int loadcard(FILE *fp, struct card *card)
+int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 {
 	static char *enl = "too many lines";
 	static char *evf = "invalid value";
@@ -395,15 +393,15 @@ int loadcard(FILE *fp, struct card *card)
 	int kl = -1;	/* starting line of current field */
 	int ol; /* lineno swap */
 
-	ol = lineno;
+	ol = *lineno;
 	if (feof(fp))
 		return 0;
 	memset(card, 0, sizeof *card);
 	nf = 0;
 	while ((ch = fgetc(fp)) == '\n') {
-		if (lineno >= NLINE)
-			parserr(enl);
-		lineno++;
+		if (*lineno >= NLINE)
+			parserr(fn, *lineno, enl);
+		(*lineno)++;
 		card->leadnewl++;
 	}
 	ungetc(ch, fp);
@@ -411,12 +409,12 @@ int loadcard(FILE *fp, struct card *card)
 	f = NULL;
 	nq = na = 0;
 	while (fgets(lb, LINESZ, fp)) {
-		if (lineno >= NLINE)
-			parserr(enl);
-		lineno++;
+		if (*lineno >= NLINE)
+			parserr(fn, *lineno, enl);
+		(*lineno)++;
 		n = strlen(lb);
 		if (lb[n - 1] != '\n' && !feof(fp))
-			parserr("line too long");
+			parserr(fn, *lineno, "line too long");
 		if (lb[0] == '%') {
 			/* end */
 			if (!(card->sep = strdup(lb)))
@@ -425,37 +423,41 @@ int loadcard(FILE *fp, struct card *card)
 		} else if (lb[0] == '\t' || lb[0] == '\n') {
 			/* successive lines in value */
 			if (!f)
-				parserr("key is expected");
+				parserr(fn, *lineno, "key is expected");
 			if (vp-v >= VALSZ-n)
-				parserr(evsz);
+				parserr(fn, *lineno, evsz);
 			vp = stpcpy(vp, lb);
 		} else {
 			/* new field */
 			if (nf >= NFIELD)
-				parserr("too many fields");
+				parserr(fn, *lineno, "too many fields");
 			if (f) {
 				if (!(f->key = strdup(k)))
 					syserr();
 				if (!(f->val = strdup(v)))
 					syserr();
 				if (!isvalidf(f)) {
-					lineno = kl;
-					parserr(evf);
+					*lineno = kl;
+					parserr(fn, *lineno, evf);
 				}
 			}
-			kl = lineno;
+			kl = *lineno;
 			nf++;
 			vp = v;
 			*vp = '\0';
 			s = strcspn(lb, "\n\t");
 			if (s >= KEYSZ)
-				parserr("key too large");
+				parserr(fn, *lineno, "key too large");
 			*stpncpy(k, lb, s) = '\0';
 			if (k[strspn(k, KCHAR)])
-				parserr("invalid key");
+				parserr(fn, *lineno, "invalid key");
 			for (f = card->field; f; f = f->next)
 				if (!strcmp(f->key, k))
-					parserr("duplicated key");
+					parserr(
+						fn,
+						*lineno,
+						"duplicated key"
+					);
 			if (!strcmp(k, Q))
 				nq++;
 			if (!strcmp(k, A))
@@ -467,7 +469,7 @@ int loadcard(FILE *fp, struct card *card)
 			if (!lb[s])
 				continue;
 			if (vp-v >= VALSZ-(n-s))
-				parserr(evsz);
+				parserr(fn, *lineno,evsz);
 			vp = stpcpy(vp, &lb[s]);
 		}
 	}
@@ -477,12 +479,12 @@ int loadcard(FILE *fp, struct card *card)
 		if (!(f->key = strdup(k)) || !(f->val = strdup(v)))
 			syserr();
 		if (!isvalidf(f)) {
-			lineno = kl;
-			parserr(evf);
+			*lineno = kl;
+			parserr(fn, *lineno, evf);
 		}
 		if (nq != 1 || na != 1) {
-			lineno = ol+card->leadnewl+1;
-			parserr("no mandatory field");
+			*lineno = ol+card->leadnewl+1;
+			parserr(fn, *lineno, "no mandatory field");
 		}
 		/* fields were installed in the reversed order */
 		card->field = revfield(card->field);
@@ -505,13 +507,13 @@ void dumpcard(FILE *fp, struct card *card)
 		syserr();
 }
 
-void parserr(char *s)
+void parserr(char *fn, int lineno, char *s)
 {
 	fprintf(
 		stderr,
 		"%s: %s: line %d: %s\n",
 		progname,
-		filename,
+		fn,
 		lineno,
 		s
 	);
@@ -548,7 +550,7 @@ char *normv(char *s, char *buf, int n)
 	return buf;
 }
 
-int isnow(struct card *card)
+int isnow(struct card *card, time_t now, int exact)
 {
 	struct tm today, theday;
 	time_t next;
@@ -556,7 +558,7 @@ int isnow(struct card *card)
 	next = tmparse(getv(card, NEXT));
 	if (next <= 0)
 		next = now;
-	if (opt.exact)
+	if (exact)
 		return now >= next;
 	memcpy(&today, localtime(&now), sizeof today);
 	memcpy(&theday, localtime(&next), sizeof theday);
@@ -657,14 +659,16 @@ void syserr()
 	exit(1);
 }
 
-time_t getdiff(struct card *card)
+time_t getdiff(struct card *card, time_t now)
 {
 	time_t prev, next, diff;
 
 	prev = tmparse(getv(card, PREV));
 	next = tmparse(getv(card, NEXT));
-	if (prev <= 0) prev = now;	
-	if (next <= 0) next = now;
+	if (prev <= 0)
+		prev = now;
+	if (next <= 0)
+		next = now;
 	if (next < prev || (diff = next - prev) < DAY)
 		diff = DAY;
 	return diff;
