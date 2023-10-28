@@ -136,7 +136,7 @@ void help(FILE *fp, int ret)
 
 void version(FILE *fp, int ret)
 {
-	fputs("HardV 4.0.0 <https://github.com/dongyx/hardv>\n", fp);
+	fputs("HardV 4.0.1 <https://github.com/dongyx/hardv>\n", fp);
 	fputs(
 		"Copyright (c) "
 		"2022 DONG Yuxuan <https://www.dyx.name>\n",
