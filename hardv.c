@@ -72,7 +72,7 @@ int isnow(struct card *card, time_t now, int exact);
 char *normv(char *s, char *buf, int n);
 int pindent(char *s);
 time_t tmparse(char *s);
-FILE *mkswap(char *fn, char *sn);
+char *swapname(char *sn, char *fn, int n);
 void err(char *s, ...);
 void parserr(char *fn, int ln, char *s);
 void syserr();
@@ -159,6 +159,7 @@ void learn(char *fn, time_t now, struct opt opt)
 	struct card ctab[NCARD];
 	struct card *plan[NCARD];
 	struct card *card;
+	char sn[PATHSZ];
 	int nc, np, i, dirty, lineno;
 	struct flock lock;
 	FILE *fp;
@@ -173,6 +174,15 @@ void learn(char *fn, time_t now, struct opt opt)
 			err("other process is accessing %s\n", fn);
 		syserr();
 	}
+	if (!access(swapname(sn, fn, PATHSZ), F_OK))
+		err(
+			"swap file detected: %s\n"
+			"This may be caused by a previous crash. "
+			"You should check the swap file "
+			"to recover the data "
+			"then delete the swap file.\n",
+			sn
+		);
 	lineno = 0;
 	nc = 0;
 	while (nc < NCARD && loadcard(fn, fp, &lineno, &ctab[nc]))
@@ -192,7 +202,7 @@ void learn(char *fn, time_t now, struct opt opt)
 		else
 			dirty = stdquiz(card, now, card1);
 		if (dirty)
-			dump(ctab, nc, fp, fn);
+			dump(ctab, nc, fp, sn);
 		if (opt.maxn > 0)
 			opt.maxn--;
 		card1 = 0;
@@ -202,10 +212,10 @@ void learn(char *fn, time_t now, struct opt opt)
 	fclose(fp);
 }
 
-void dump(struct card *ctab, int n, FILE *fp, char *fn)
+void dump(struct card *ctab, int n, FILE *fp, char *sn)
 {
 	FILE *sp;
-	char sn[PATHSZ];
+	int fd;
 	struct card *card;
 	sigset_t bset, oset;
 
@@ -216,7 +226,13 @@ void dump(struct card *ctab, int n, FILE *fp, char *fn)
 	sigaddset(&bset, SIGQUIT);
 	sigaddset(&bset, SIGTSTP);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
-	sp = mkswap(fn, sn);
+	if ((fd = open(sn, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1) {
+		if (errno == EEXIST)
+			err("%s existed\n", sn);
+		syserr();
+	}
+	if (!(sp = fdopen(fd, "w")))
+		syserr();
 	for (card = ctab; card < ctab + n; card++)
 		dumpcard(sp, card);
 	if (
@@ -243,37 +259,19 @@ void dump(struct card *ctab, int n, FILE *fp, char *fn)
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
-FILE *mkswap(char *fn, char *sn)
+char *swapname(char *sn, char *fn, int n)
 {
 	static char *epsz = "file path too long\n";
 	char buf[PATHSZ], dn[PATHSZ], *bn;
-	int fd;
 
 	strncpy(buf, fn, PATHSZ);
 	if (buf[PATHSZ - 1])
 		err(epsz);
 	strcpy(dn, dirname(buf));
 	bn = basename(strcpy(buf, fn));
-	if (snprintf(sn, PATHSZ, "%s/.%s.swp", dn, bn) >= PATHSZ)
+	if (snprintf(sn, n, "%s/.%s.swp", dn, bn) >= n)
 		err(epsz);
-	if ((fd = open(sn, O_RDWR|O_CREAT|O_EXCL, 0600)) == -1) {
-		if (errno == EEXIST)
-			err(
-				"The swap file %s is detected.\n"
-				"This may be caused by "
-				"simultaneous quiz/editing, "
-				"or a previous crash.\n"
-				"If it's caused by a crash, "
-				"you should "
-				"run a diff on the original file with "
-				"the swap file, "
-				"recover the data, "
-				"and delete the swap file.\n",
-				sn
-			);
-		syserr();
-	}
-	return fdopen(fd, "r+");
+	return sn;
 }
 
 int stdquiz(struct card *card, time_t now, int card1)
