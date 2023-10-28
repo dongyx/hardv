@@ -171,12 +171,12 @@ void learn(char *fn, time_t now, struct opt opt)
 	lock.l_start = lock.l_len = 0;
 	if (fcntl(fileno(fp), F_SETLK, &lock) == -1) {
 		if (errno == EAGAIN || errno == EACCES)
-			err("other process is accessing %s\n", fn);
+			err("Other process is accessing %s\n", fn);
 		syserr();
 	}
 	if (!access(swapname(sn, fn, PATHSZ), F_OK))
 		err(
-			"swap file detected: %s\n"
+			"Swap file detected: %s\n"
 			"This may be caused by a previous crash. "
 			"You should check the swap file "
 			"to recover the data "
@@ -188,7 +188,7 @@ void learn(char *fn, time_t now, struct opt opt)
 	while (nc < NCARD && loadcard(fn, fp, &lineno, &ctab[nc]))
 		nc++;
 	if (!feof(fp))
-		err("too many cards in %s\n", fn);
+		err("Too many cards in %s\n", fn);
 	np = 0;
 	for (card = ctab; card < ctab + nc; card++)
 		if (card->field && isnow(card, now, opt.exact))
@@ -226,11 +226,8 @@ void dump(struct card *ctab, int n, FILE *fp, char *sn)
 	sigaddset(&bset, SIGQUIT);
 	sigaddset(&bset, SIGTSTP);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
-	if ((fd = open(sn, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1) {
-		if (errno == EEXIST)
-			err("%s existed\n", sn);
-		syserr();
-	}
+	if ((fd = open(sn, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1)
+		err("%s: %s\n", sn, strerror(errno));
 	if (!(sp = fdopen(fd, "w")))
 		syserr();
 	for (card = ctab; card < ctab + n; card++)
@@ -261,7 +258,7 @@ void dump(struct card *ctab, int n, FILE *fp, char *sn)
 
 char *swapname(char *sn, char *fn, int n)
 {
-	static char *epsz = "file path too long\n";
+	static char *epsz = "File path too long\n";
 	char buf[PATHSZ], dn[PATHSZ], *bn;
 
 	strncpy(buf, fn, PATHSZ);
@@ -394,9 +391,9 @@ void setn(struct card *card, time_t now)
 /* return 1 for success, 0 for EOF */
 int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 {
-	static char *enl = "too many lines";
-	static char *evf = "invalid value";
-	static char *evsz = "value too large";
+	static char *enl = "Too many lines";
+	static char *evf = "Invalid value";
+	static char *evsz = "Value too large";
 	char lb[LINESZ], k[KEYSZ], v[VALSZ], *vp;
 	struct field *f;
 	int s, n, ch;
@@ -424,7 +421,7 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 		(*lineno)++;
 		n = strlen(lb);
 		if (lb[n - 1] != '\n' && !feof(fp))
-			parserr(fn, *lineno, "line too long");
+			parserr(fn, *lineno, "Line too long");
 		if (lb[0] == '%') {
 			/* end */
 			if (!(card->sep = strdup(lb)))
@@ -433,14 +430,14 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 		} else if (lb[0] == '\t' || lb[0] == '\n') {
 			/* successive lines in value */
 			if (!f)
-				parserr(fn, *lineno, "key is expected");
+				parserr(fn, *lineno, "Key is expected");
 			if (vp - v >= VALSZ - n)
 				parserr(fn, *lineno, evsz);
 			vp = stpcpy(vp, lb);
 		} else {
 			/* new field */
 			if (nf >= NFIELD)
-				parserr(fn, *lineno, "too many fields");
+				parserr(fn, *lineno, "Too many fields");
 			if (f) {
 				if (!(f->key = strdup(k)))
 					syserr();
@@ -455,16 +452,16 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 			*vp = '\0';
 			s = strcspn(lb, "\n\t");
 			if (s >= KEYSZ)
-				parserr(fn, *lineno, "key too large");
+				parserr(fn, *lineno, "Key too large");
 			*stpncpy(k, lb, s) = '\0';
 			if (k[strspn(k, KCHAR)])
-				parserr(fn, *lineno, "invalid key");
+				parserr(fn, *lineno, "Invalid key");
 			for (f = card->field; f; f = f->next)
 				if (!strcmp(f->key, k))
 					parserr(
 						fn,
 						*lineno,
-						"duplicated key"
+						"Duplicated key"
 					);
 			if (!strcmp(k, Q))
 				nq++;
@@ -492,7 +489,7 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 			parserr(
 				fn,
 				start + card->leadnewl + 1,
-				"no mandatory field"
+				"No mandatory field"
 			);
 		card->field = revfield(card->field);
 	}
