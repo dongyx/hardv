@@ -84,18 +84,16 @@ int main(int argc, char **argv)
 	time_t now;
 
 	progname = argv[0];
-	if (argc < 2)
-		help(stderr, 1);
-	if (!strcmp(argv[1], "--help"))
-		help(stdout, 0);
-	if (!strcmp(argv[1], "--version"))
-		version(stdout, 0);
 	srand(getpid()^time(NULL));
+	if (argc > 1 && !strcmp(argv[1], "--help"))
+		help(stdout, 0);
+	if (argc > 1 && !strcmp(argv[1], "--version"))
+		version(stdout, 0);
 	if ((now = tmparse(getenv("HARDV_NOW"))) <= 0)
 		time(&now);
 	memset(&opt, 0, sizeof opt);
 	opt.maxn = -1;
-	while ((ch = getopt(argc, argv, "dern:")) != -1)
+	while ((ch = getopt(argc, argv, "ern:")) != -1)
 		switch (ch) {
 		case 'e':
 			opt.exact = 1;
@@ -108,12 +106,12 @@ int main(int argc, char **argv)
 				help(stderr, 1);
 			break;
 		default:
-			help(stderr, 1);
+			return 1;
 		}
-	if (optind >= argc)
-		help(stderr, 1);
 	argv += optind;
 	argc -= optind;
+	if (argc <= 0)
+		err("File operand expected\n");
 	while (*argv)
 		learn(*argv++, now, opt);
 	return 0;
@@ -165,13 +163,13 @@ void learn(char *fn, time_t now, struct opt opt)
 	FILE *fp;
 
 	if (!(fp = fopen(fn, "r+")))
-		syserr();
+		err("%s: %s\n", fn, strerror(errno));
 	lock.l_type = F_WRLCK;
 	lock.l_whence = SEEK_SET;
 	lock.l_start = lock.l_len = 0;
 	if (fcntl(fileno(fp), F_SETLK, &lock) == -1) {
 		if (errno == EAGAIN || errno == EACCES)
-			err("Other process is accessing %s\n", fn);
+			err("%s: Other process is accessing\n", fn);
 		syserr();
 	}
 	if (!access(swapname(sn, fn, PATHSZ), F_OK))
