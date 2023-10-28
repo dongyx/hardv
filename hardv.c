@@ -136,7 +136,7 @@ void help(FILE *fp, int ret)
 
 void version(FILE *fp, int ret)
 {
-	fputs("HardV 3.2.0 <https://github.com/dongyx/hardv>\n", fp);
+	fputs("HardV 4.0.0 <https://github.com/dongyx/hardv>\n", fp);
 	fputs(
 		"Copyright (c) "
 		"2022 DONG Yuxuan <https://www.dyx.name>\n",
@@ -626,8 +626,10 @@ time_t tmparse(char *s)
 	while (isspace((unsigned char)*s))
 		s++;
 	memset(&tm, 0, sizeof tm);
-	if (!(s = strptime(s, "%Y-%m-%d %H:%M:%S", &tm))
-		|| (sscanf(s, " %c%2u%2u", &sg, &hr, &mi) != 3))
+	if (
+		!(s = strptime(s, "%Y-%m-%d %H:%M:%S", &tm)) ||
+		(sscanf(s, " %c%2u%2u", &sg, &hr, &mi) != 3)
+	)
 		return 0;
 	ck = timegm(&tm);
 	if (sg == '+')
