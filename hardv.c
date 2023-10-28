@@ -12,7 +12,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
-#define MAXSIG	32
 #define KCHAR	"abcdefghijklmnopqrstuvwxyz" \
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
 		"0123456789_"
