@@ -400,7 +400,7 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 	struct field *f;
 	int s, n, ch;
 	int nf, nq, na;
-	int start, kl = -1;
+	int start, kl;
 
 	start = *lineno;
 	if (feof(fp))
@@ -417,6 +417,7 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 	vp = NULL;
 	f = NULL;
 	nq = na = 0;
+	kl = start + card->leadnewl;
 	while (fgets(lb, LINESZ, fp)) {
 		if (*lineno >= NLINE)
 			parserr(fn, *lineno, enl);
