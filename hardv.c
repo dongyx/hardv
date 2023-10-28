@@ -367,7 +367,8 @@ int modquiz(struct card *card, time_t now, int card1)
 	case 0:
 		sety(card, now);
 		return 1;
-	case 1: setn(card, now);
+	case 1:
+		setn(card, now);
 		return 1;
 	}
 	return 0;
@@ -550,7 +551,7 @@ char *normv(char *s, char *buf, int n)
 		if (*sp != '\t' || sp > s && sp[-1] != '\n')
 			*bp++ = *sp;
 	if (bp == &buf[n])
-		return NULL;
+		err("Buffer too small to normalize value\n");
 	while (bp > buf && bp[-1] == '\n')
 		bp--;
 	*bp = '\0';
