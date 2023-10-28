@@ -36,6 +36,7 @@ you could use empty lines and white characters to layout your card files.
 
 - HardV is a Unix filter in the default mode;
 that makes it easy to be called by other programs.
+Eg. You could pipe HardV to a voice synthesizer to make an audio quiz.
 
 **Table of Contents**
 
