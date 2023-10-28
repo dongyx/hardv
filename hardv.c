@@ -719,17 +719,17 @@ char *setv(struct card *card, char *k, char *v)
 		if (!strcmp(i->key, k))
 			break;
 	if (!i) {
-		if (!(i=malloc(sizeof *i)))
+		if (!(i = malloc(sizeof *i)))
 			syserr();
 		memset(i, 0, sizeof *i);
-		if (!(i->key=strdup(k)))
+		if (!(i->key = strdup(k)))
 			syserr();
 		i->val = NULL;
 		i->next = card->field;
 		card->field = i;
 	}
 	free(i->val);
-	if (!(i->val=strdup(v)))
+	if (!(i->val = strdup(v)))
 		syserr();
 	return i->val;
 }
