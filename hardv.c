@@ -62,7 +62,7 @@ void destrcard(struct card *card);
 void shuf(struct card *a[], int n);
 void sety(struct card *card, time_t now);
 void setn(struct card *card, time_t now);
-char *timev(time_t clock);
+char *timev(time_t clock, char *buf, int n);
 char *getv(struct card *card, char *k);
 char *setv(struct card *card, char *k, char *v);
 int isvalidf(struct field *f);
@@ -375,17 +375,20 @@ int modquiz(struct card *card, time_t now, int card1)
 
 void sety(struct card *card, time_t now)
 {
+	char buf[VALSZ];
 	time_t diff;
 
 	diff = getdiff(card, now);
-	setv(card, PREV, timev(now));
-	setv(card, NEXT, timev(now + 2*diff));
+	setv(card, PREV, timev(now, buf, VALSZ));
+	setv(card, NEXT, timev(now + 2 * diff, buf, VALSZ));
 }
 
 void setn(struct card *card, time_t now)
 {
-	setv(card, PREV, timev(now));
-	setv(card, NEXT, timev(now+DAY));
+	char buf[VALSZ];
+
+	setv(card, PREV, timev(now, buf, VALSZ));
+	setv(card, NEXT, timev(now + DAY, buf, VALSZ));
 }
 
 /* return 1 for success, 0 for EOF */
@@ -684,20 +687,23 @@ time_t getdiff(struct card *card, time_t now)
 	return diff;
 }
 
-char *timev(time_t clock)
+char *timev(time_t clock, char *buf, int n)
 {
-	static char buf[VALSZ];
 	struct tm *lc;
-	int n;
+	int p;
 
+	if (n < 3)
+		goto noroom;
 	lc = localtime(&clock);
 	buf[0] = '\t';
-	n = strftime(&buf[1], VALSZ - 2, "%Y-%m-%d %H:%M:%S %z", lc);
-	if (!n)
-		err("Buffer too small\n");
-	buf[1 + n] = '\n';
-	buf[2 + n] = '\0';
+	p = strftime(&buf[1], n - 2, "%Y-%m-%d %H:%M:%S %z", lc);
+	if (!p)
+		goto noroom;
+	buf[1 + p] = '\n';
+	buf[2 + p] = '\0';
 	return buf;
+noroom:	err("Buffer too small to format timestamp %ld\n", (long)clock);
+	return NULL;
 }
 
 char *getv(struct card *card, char *k)
