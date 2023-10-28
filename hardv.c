@@ -1,7 +1,5 @@
 #define _XOPEN_SOURCE 700
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <libgen.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -9,11 +7,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
-#include <setjmp.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <errno.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <time.h>
 #define MAXSIG	32
 #define KCHAR	"abcdefghijklmnopqrstuvwxyz" \
@@ -53,12 +50,6 @@ struct card {
 };
 
 char *progname, *filename;
-int abortsigs[] = {SIGHUP,SIGINT,SIGTERM,SIGQUIT,0};
-sigset_t bset, oset;
-struct sigaction oact[MAXSIG];
-volatile sig_atomic_t aborted;
-struct card ctab[NCARD]; 
-int ncard, dirty;
 struct opt opt;
 int card1 = 1;
 int lineno;
@@ -67,12 +58,9 @@ time_t now;
 void learn(char *fn);
 void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
-void stdquiz(struct card *card);
-void modquiz(struct card *card);
-void setsig(void (*func)(int));
-void unsetsig(void);
-void onabort(int signo);
-void dump(void);
+int stdquiz(struct card *card);
+int modquiz(struct card *card);
+void dump(struct card *ctab, int n, char *fn);
 int loadcard(FILE *fp, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
 void destrcard(struct card *card);
@@ -127,18 +115,11 @@ int main(int argc, char **argv)
 		}
 	if (optind >= argc)
 		help(stderr, -1);
-	sigprocmask(SIG_SETMASK, NULL, &oset);
-	sigemptyset(&bset);
-	for (sig=abortsigs; *sig; sig++) {
-		sigaddset(&bset, *sig);
-		sigaction(*sig, NULL, &oact[*sig]);
-	}
-	sigaddset(&bset, SIGTSTP);
 	argv += optind;
 	argc -= optind;
-	while (*argv && !aborted)
+	while (*argv)
 		learn(*argv++);
-	return aborted ? 127 + aborted : 0;
+	return 0;
 }
 
 void help(FILE *fp, int ret)
@@ -177,130 +158,100 @@ void version(FILE *fp, int ret)
 
 void learn(char *fn)
 {
+	struct card ctab[NCARD];
 	struct card *plan[NCARD];
 	struct card *card;
 	FILE *fp;
-	int nc, np, i;
+	int nc, np, i, dirty;
 
-	filename = fn;
 	if (!(fp = fopen(fn, "r")))
 		syserr();
+	filename = fn;
 	lineno = 0;
-	ncard = 0;
-	while (ncard < NCARD && loadcard(fp, ctab+ncard))
-		ncard++;
+	nc = 0;
+	while (nc < NCARD && loadcard(fp, ctab+nc))
+		nc++;
 	if (!feof(fp))
 		err("too many cards in %s\n", fn);
 	fclose(fp);
 	np = 0;
-	for (card=ctab; card<ctab+ncard; card++)
+	for (card = ctab; card < ctab + nc; card++)
 		if (card->field && isnow(card))
 			plan[np++] = card;
 	if (opt.rand)
 		shuf(plan, np);
-	aborted = 0;
-	setsig(onabort);
-	for (i=0; !aborted && opt.maxn && i<np; i++) {
+	for (i = 0; opt.maxn && i < np; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
-			modquiz(card);
+			dirty = modquiz(card);
 		else
-			stdquiz(card);
+			dirty = stdquiz(card);
+		if (dirty)
+			dump(ctab, nc, fn);
 		card1 = 0;
 		if (opt.maxn > 0)
 			opt.maxn--;
 	}
-	dump();
-	unsetsig();
-	for (card=ctab; card<ctab+ncard; card++)
-		destrcard(card);
 }
 
-void setsig(void (*func)(int))
-{
-	struct sigaction act;
-	int *sig;
-
-	sigprocmask(SIG_BLOCK, &bset, NULL);
-	act.sa_handler = func;
-	act.sa_flags = 0;
-#ifdef SA_INTERRUPT
-	act.sa_flags |= SA_INTERRUPT;
-#endif
-	sigemptyset(&act.sa_mask);
-	for (sig=abortsigs; *sig; sig++)
-		sigaddset(&act.sa_mask, *sig);
-	for (sig=abortsigs; *sig; sig++)
-		sigaction(*sig, &act, NULL);
-	sigprocmask(SIG_SETMASK, &oset, NULL);
-}
-
-void unsetsig(void)
-{
-	int *sig;
-
-	sigprocmask(SIG_BLOCK, &bset, NULL);
-	for (sig=abortsigs; *sig; sig++)
-		sigaction(*sig, &oact[*sig], NULL);
-	sigprocmask(SIG_SETMASK, &oset, NULL);
-}
-
-void onabort(int signo)
-{
-	aborted = signo;
-}
-
-void dump(void)
+void dump(struct card *ctab, int n, char *fn)
 {
 	FILE *fp, *sp;
-	char swapname[PATHSZ];
+	char sn[PATHSZ];
 	struct card *card;
+	sigset_t bset, oset;
 
-	if (!dirty)
-		return;
-	dirty = 0;
-	sigprocmask(SIG_BLOCK, &bset, NULL);
-	sp = mkswap(filename, swapname);
-	for (card=ctab; card<ctab+ncard; card++)
+	sigemptyset(&bset);
+	sigaddset(&bset, SIGHUP);
+	sigaddset(&bset, SIGINT);
+	sigaddset(&bset, SIGTERM);
+	sigaddset(&bset, SIGQUIT);
+	sigaddset(&bset, SIGTSTP);
+	sigprocmask(SIG_BLOCK, &bset, &oset);
+	sp = mkswap(fn, sn);
+	for (card = ctab; card < ctab + n; card++)
 		dumpcard(sp, card);
-	if (fflush(sp) == EOF || fsync(fileno(sp)) == -1)
+	if (
+		fflush(sp) == EOF ||
+		fsync(fileno(sp)) == -1 ||
+		fclose(sp) == EOF
+	)
 		syserr();
-	fclose(sp);
 	if (!(fp = fopen(filename, "w")))
 		syserr();
-	for (card=ctab; card<ctab+ncard; card++)
+	for (card = ctab; card < ctab + n; card++)
 		dumpcard(fp, card);
-	if (fflush(fp) == EOF || fsync(fileno(fp)) == -1)
+	if (
+		fflush(fp) == EOF ||
+		fsync(fileno(fp)) == -1 ||
+		fclose(fp) == EOF
+	)
 		syserr();
-	fclose(fp);
-	unlink(swapname);
+	if (unlink(sn) == -1)
+		err("%s: %s\n", sn, strerror(errno));
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
 FILE *mkswap(char *fn, char *sn)
 {
 	static char *epsz = "file path too long\n";
-	char pb[PATHSZ], dn[PATHSZ], *bn;
-	struct stat st;
+	char buf[PATHSZ], dn[PATHSZ], *bn;
 	int fd;
 
-	strncpy(pb, fn, PATHSZ);
-	if (pb[PATHSZ-1])
+	strncpy(buf, fn, PATHSZ);
+	if (buf[PATHSZ - 1])
 		err(epsz);
-	strcpy(dn, dirname(pb));
-	/* dirname() may change the original string */
-	strncpy(pb, fn, PATHSZ);
-	bn = basename(pb);
+	strcpy(dn, dirname(buf));
+	bn = basename(strcpy(buf, fn));
 	if (snprintf(sn, PATHSZ, "%s/.%s.swp", dn, bn) >= PATHSZ)
 		err(epsz);
-	if (stat(fn, &st) == -1)
-		syserr();
-	if ((fd = open(sn, O_RDWR|O_CREAT|O_EXCL, st.st_mode)) == -1) {
+	if ((fd = open(sn, O_RDWR|O_CREAT|O_EXCL, 0600)) == -1) {
 		if (errno == EEXIST)
-			err(	"The swap file %s is detected. "
+			err(
+				"The swap file %s is detected.\n"
 				"This may be caused by "
 				"simultaneous quiz/editing, "
-				"or a previous crash. "
+				"or a previous crash.\n"
 				"If it's caused by a crash, "
 				"you should "
 				"run a diff on the original file with "
@@ -314,7 +265,7 @@ FILE *mkswap(char *fn, char *sn)
 	return fdopen(fd, "r+");
 }
 
-void stdquiz(struct card *card)
+int stdquiz(struct card *card)
 {
 	char in[LINESZ], ques[VALSZ], answ[VALSZ];
 	char *act;
@@ -327,40 +278,43 @@ void stdquiz(struct card *card)
 	pindent(ques);
 	puts("\n");
 	fflush(stdout);
-CHECK:
-	fputs("Press <ENTER> to check the answer.\n", stdout);
-	fflush(stdout);
-	while (!fgets(in, LINESZ, stdin)) {
-		if (aborted)
-			return;
-		if (errno != EINTR)
-			syserr();
-	}
-	if (strcmp(in, "\n"))
-		goto CHECK;
+	do {
+		fputs("Press <ENTER> to check the answer.\n", stdout);
+		fflush(stdout);
+		while (!fgets(in, LINESZ, stdin)) {
+			if (feof(stdin))
+				exit(0);
+			if (errno != EINTR)
+				syserr();
+		}
+	} while (strcmp(in, "\n"));
 	puts("A:\n");
 	pindent(answ);
 	puts("\n");
 	fflush(stdout);
-QUERY:
-	fputs("Do you recall? (y/n/s)\n", stdout);
-	fflush(stdout);
-	while (!fgets(in, LINESZ, stdin)) {
-		if (aborted)
-			return;
-		if (errno != EINTR)
-			syserr();
-	}
-	act = strstr("y\nn\ns\n", in);
-	if (!act || *act == '\n')
-		goto QUERY;
+	do {
+		fputs("Do you recall? (y/n/s)\n", stdout);
+		fflush(stdout);
+		while (!fgets(in, LINESZ, stdin)) {
+			if (feof(stdin))
+				exit(0);
+			if (errno != EINTR)
+				syserr();
+		}
+		act = strstr("y\nn\ns\n", in);
+	} while (!act || *act == '\n');
 	switch (*act) {
-	case 'y': sety(card); break;
-	case 'n': setn(card); break;
+	case 'y':
+		sety(card);
+		return 1;
+	case 'n':
+		setn(card);
+		return 1;
 	}
+	return 0;
 }
 
-void modquiz(struct card *card)
+int modquiz(struct card *card)
 {
 	char mod[VALSZ], q[VALSZ], a[VALSZ];
 	char pfx[] = "HARDV_F_";
@@ -368,13 +322,11 @@ void modquiz(struct card *card)
 	char k[KEYSZ + sizeof(pfx) - 1];
 	struct field *f;
 	pid_t pid;
-	int stat;
+	int st;
 
-	if ((pid=fork()) == -1)
+	if ((pid = fork()) == -1)
 		syserr();
-	/* child */
 	if (pid == 0) {
-		strcpy(k, pfx);
 		normv(getv(card, MOD), mod, VALSZ);
 		normv(getv(card, Q), q, VALSZ);
 		normv(getv(card, A), a, VALSZ);
@@ -384,7 +336,8 @@ void modquiz(struct card *card)
 		first[0] = first[1] = '\0';
 		if (card1)
 			first[0] = '1';
-		if (	setenv("HARDV_Q",	q,	1) == -1 ||
+		if (
+			setenv("HARDV_Q",	q,	1) == -1 ||
 			setenv("HARDV_A",	a,	1) == -1 ||
 			setenv("HARDV_NEXT",	snext,	1) == -1 ||
 			setenv("HARDV_PREV",	sprev,	1) == -1 ||
@@ -392,22 +345,26 @@ void modquiz(struct card *card)
 			setenv("HARDV_FIRST",	first,	1) == -1
 		)
 			syserr();
-		for (f=card->field; f!=NULL; f=f->next) {
-			strcpy(&k[sizeof(pfx)-1], f->key);
+		strcpy(k, pfx);
+		for (f = card->field; f != NULL; f = f->next) {
+			strcpy(&k[sizeof(pfx) - 1], f->key);
 			if (setenv(k, f->val, 1) == -1)
 				syserr();
 		}
 		execl(SHELL, SHELL, "-c", mod, NULL);
 		syserr();
 	}
-	/* parent */
-	while (waitpid(pid, &stat, 0) == -1)
+	while (waitpid(pid, &st, 0) == -1)
 		if (errno != EINTR)
 			syserr();
-	switch (WEXITSTATUS(stat)) {
-	case 0: sety(card); break;
-	case 1: setn(card); break;
+	switch (WEXITSTATUS(st)) {
+	case 0:
+		sety(card);
+		return 1;
+	case 1: setn(card);
+		return 1;
 	}
+	return 0;
 }
 
 void sety(struct card *card)
@@ -417,14 +374,12 @@ void sety(struct card *card)
 	diff = getdiff(card);
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now + 2*diff));
-	dirty = 1;
 }
 
 void setn(struct card *card)
 {
 	setv(card, PREV, timev(now));
 	setv(card, NEXT, timev(now+DAY));
-	dirty = 1;
 }
 
 /* return 1 for success, 0 for EOF */
@@ -445,7 +400,7 @@ int loadcard(FILE *fp, struct card *card)
 		return 0;
 	memset(card, 0, sizeof *card);
 	nf = 0;
-	while ((ch=fgetc(fp)) == '\n') {
+	while ((ch = fgetc(fp)) == '\n') {
 		if (lineno >= NLINE)
 			parserr(enl);
 		lineno++;
@@ -479,9 +434,9 @@ int loadcard(FILE *fp, struct card *card)
 			if (nf >= NFIELD)
 				parserr("too many fields");
 			if (f) {
-				f->key = strdup(k);
-				f->val = strdup(v);
-				if (!f->key || !f->val)
+				if (!(f->key = strdup(k)))
+					syserr();
+				if (!(f->val = strdup(v)))
 					syserr();
 				if (!isvalidf(f)) {
 					lineno = kl;
@@ -498,7 +453,7 @@ int loadcard(FILE *fp, struct card *card)
 			*stpncpy(k, lb, s) = '\0';
 			if (k[strspn(k, KCHAR)])
 				parserr("invalid key");
-			for (f=card->field; f; f=f->next)
+			for (f = card->field; f; f = f->next)
 				if (!strcmp(f->key, k))
 					parserr("duplicated key");
 			if (!strcmp(k, Q))
@@ -552,7 +507,6 @@ void dumpcard(FILE *fp, struct card *card)
 
 void parserr(char *s)
 {
-	dump();
 	fprintf(
 		stderr,
 		"%s: %s: line %d: %s\n",
@@ -561,7 +515,7 @@ void parserr(char *s)
 		lineno,
 		s
 	);
-	exit(-1);
+	exit(1);
 }
 
 void destrcard(struct card *card)
@@ -690,19 +644,17 @@ void err(char *fmt, ...)
 {
 	va_list ap;
 
-	dump();
 	va_start(ap, fmt);
 	fprintf(stderr, "%s: ", progname);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	exit(-1);
+	exit(1);
 }
 
 void syserr()
 {
-	dump();
 	perror(progname);
-	exit(-1);
+	exit(1);
 }
 
 time_t getdiff(struct card *card)
@@ -736,7 +688,7 @@ char *getv(struct card *card, char *k)
 {
 	struct field *i;
 
-	for (i=card->field; i; i=i->next)
+	for (i = card->field; i; i = i->next)
 		if (!strcmp(i->key, k))
 			return i->val;
 	return NULL;
@@ -746,7 +698,7 @@ char *setv(struct card *card, char *k, char *v)
 {
 	struct field *i;
 
-	for (i=card->field; i; i=i->next)
+	for (i = card->field; i; i = i->next)
 		if (!strcmp(i->key, k))
 			break;
 	if (!i) {
