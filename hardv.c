@@ -56,7 +56,7 @@ void help(FILE *fp, int ret);
 void version(FILE *fp, int ret);
 int stdquiz(struct card *card, time_t now, int card1);
 int modquiz(struct card *card, time_t now, int card1);
-void dump(struct card *ctab, int n, char *fn);
+void dump(struct card *ctab, int n, FILE *fp, char *fn);
 int loadcard(char *fn, FILE *fp, int *lineno, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
 void destrcard(struct card *card);
@@ -160,18 +160,26 @@ void learn(char *fn, time_t now, struct opt opt)
 	struct card ctab[NCARD];
 	struct card *plan[NCARD];
 	struct card *card;
-	FILE *fp;
 	int nc, np, i, dirty, lineno;
+	struct flock lock;
+	FILE *fp;
 
-	if (!(fp = fopen(fn, "r")))
+	if (!(fp = fopen(fn, "r+")))
 		syserr();
+	lock.l_type = F_WRLCK;
+	lock.l_whence = SEEK_SET;
+	lock.l_start = lock.l_len = 0;
+	if (fcntl(fileno(fp), F_SETLK, &lock) == -1) {
+		if (errno == EAGAIN || errno == EACCES)
+			err("other process is accessing %s\n", fn);
+		syserr();
+	}
 	lineno = 0;
 	nc = 0;
 	while (nc < NCARD && loadcard(fn, fp, &lineno, &ctab[nc]))
 		nc++;
 	if (!feof(fp))
 		err("too many cards in %s\n", fn);
-	fclose(fp);
 	np = 0;
 	for (card = ctab; card < ctab + nc; card++)
 		if (card->field && isnow(card, now, opt.exact))
@@ -185,16 +193,17 @@ void learn(char *fn, time_t now, struct opt opt)
 		else
 			dirty = stdquiz(card, now, card1);
 		if (dirty)
-			dump(ctab, nc, fn);
+			dump(ctab, nc, fp, fn);
 		if (opt.maxn > 0)
 			opt.maxn--;
 		card1 = 0;
 	}
+	fclose(fp);
 }
 
-void dump(struct card *ctab, int n, char *fn)
+void dump(struct card *ctab, int n, FILE *fp, char *fn)
 {
-	FILE *fp, *sp;
+	FILE *sp;
 	char sn[PATHSZ];
 	struct card *card;
 	sigset_t bset, oset;
@@ -211,22 +220,25 @@ void dump(struct card *ctab, int n, char *fn)
 		dumpcard(sp, card);
 	if (
 		fflush(sp) == EOF ||
-		fsync(fileno(sp)) == -1 ||
-		fclose(sp) == EOF
+		fsync(fileno(sp)) == -1
 	)
 		syserr();
-	if (!(fp = fopen(fn, "w")))
+	fclose(sp);
+	if (
+		fseek(fp, 0, SEEK_SET) == -1 ||
+		fflush(fp) == EOF ||
+		ftruncate(fileno(fp), 0) == -1
+	)
 		syserr();
 	for (card = ctab; card < ctab + n; card++)
 		dumpcard(fp, card);
 	if (
 		fflush(fp) == EOF ||
-		fsync(fileno(fp)) == -1 ||
-		fclose(fp) == EOF
+		fsync(fileno(fp)) == -1
 	)
 		syserr();
 	if (unlink(sn) == -1)
-		err("%s: %s\n", sn, strerror(errno));
+		syserr();
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
