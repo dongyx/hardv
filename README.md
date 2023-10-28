@@ -1,7 +1,7 @@
 HardV
 =====
 
-HardV is a powerful flashcard program for Unix/Linux.
+HardV is a powerful flashcard program for Linux, macOS and other Unix-like systems.
 The key features are listed below.
 
 - Almost everything can be customized,
@@ -9,11 +9,11 @@ with any programming language you prefer.
 E.g.:
 
 	- HardV runs in the CLI mode by default;
-	But you may configure it to a TUI program,
+	but you may configure it to a TUI program,
 	or to view images in a GUI window.
 
 	- HardV can open the editor;
-	Send the content you wrote
+	send the content you wrote
 	to an online judging system,
 	and determine the next quiz time by the judging result.
 
@@ -29,12 +29,13 @@ easy to be parsed by both human and other Unix utilities
 like `grep`, `sed`, and `awk`.
 
 - Metadata like scheduled time is written back to input files;
-Thus all your data is in files created and managed by yourself.
+thus all your data is in files created and managed by yourself.
 
-- Although HardV is not a strict filter,
-in the default mode
-it reads user actions from the standard input and prints to the standard output.
-That makes HardV easy to be called by other programs.
+- HardV respects contents of input files as long as possible;
+you could use empty lines and white characters to layout your card files.
+
+- HardV is a Unix filter in the default mode;
+that makes it easy to be called by other programs.
 
 **Table of Contents**
 
@@ -137,26 +138,24 @@ and this mod notifies HardV to update nothing.
 We create a shell script named `/usr/loca/bin/recite`
 with the following content and make it executable.
 
-~~~shell
-#!/bin/sh
+	#!/bin/sh
 
-# Print a blank line before quizzing a card, except the first
-if ! [ "$HARDV_FIRST" ]; then
-	printf '\n'
-fi
-printf 'Q: %s\n' "$HARDV_Q"	# Print the question
-printf '(recite) A: '		# Print the prompt
-read a				# Read the user-input line to variable a
-if [ "$a" = "!" ]; then
-	exit 2;			# Skip this card
-fi
-if [ "$a" = "$HARDV_A" ]; then
-	echo 'Correct!'
-	exit 0;			# The user is able to recall
-fi
-printf 'Wrong! The answer is: %s\n' "$HARDV_A"
-exit 1;				# The user is unable to recall
-~~~
+	# Print a blank line before quizzing a card, except the first
+	if ! [ "$HARDV_FIRST" ]; then
+		printf '\n'
+	fi
+	printf 'Q: %s\n' "$HARDV_Q"	# Print the question
+	printf '(recite) A: '		# Print the prompt
+	read a				# Read the user-input line to variable a
+	if [ "$a" = "!" ]; then
+		exit 2;			# Skip this card
+	fi
+	if [ "$a" = "$HARDV_A" ]; then
+		echo 'Correct!'
+		exit 0;			# The user is able to recall
+	fi
+	printf 'Wrong! The answer is: %s\n' "$HARDV_A"
+	exit 1;				# The user is unable to recall
 
 For the card we want to enable this mod,
 we add the `MOD` field with the value `recite`.
@@ -217,7 +216,7 @@ release note.
 
 - Extract the source.
 
-- Execute:
+- Execute in the source tree:
 
 	~~~
 	$ make
@@ -239,21 +238,27 @@ Every line in the value which is not on the same line with the key
 must start with a tab character, except for blank lines.
 For blank lines in the value, the leading tab character is optional.
 
-Cards are typically separated by `%%` or `%` on a line by itself.
-In fact, any line starting with `%` is seen as a card separator,
-but `%%` is recommended.
+Cards are typically separated by `%%` on a line by itself.
+In fact, any line starting with `%` is regarded as a card separator.
 
-Empty cards are ignored.  Thus separators can be used as comments,
+Empty cards are ignored.
+In the standard quiz, the leading and trailing empty lines in values are ignored too.
+Thus separators can be used as comments,
+and you could add empty lines and white characters for readability,
 demonstrated by the following.
 
 	%% This is a card set for hardv(1)
 	%% Created at Feb 1, 1997
 
 	Q       hex(256) = ?
-	A       0x100
+	A
+		0x100
+
 	%%
+
 	Q       hex(128) = ?
-	A       0x80
+
+	A	0x80
 
 	%% Arithmetic cards begin
 
