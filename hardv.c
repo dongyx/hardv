@@ -693,6 +693,8 @@ char *timev(time_t clock)
 	lc = localtime(&clock);
 	buf[0] = '\t';
 	n = strftime(&buf[1], VALSZ - 2, "%Y-%m-%d %H:%M:%S %z", lc);
+	if (!n)
+		err("Buffer too small\n");
 	buf[1 + n] = '\n';
 	buf[2 + n] = '\0';
 	return buf;
