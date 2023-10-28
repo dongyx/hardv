@@ -198,6 +198,8 @@ void learn(char *fn, time_t now, struct opt opt)
 			opt.maxn--;
 		card1 = 0;
 	}
+	for (card = ctab; card < ctab + nc; card++)
+		destrcard(card);
 	fclose(fp);
 }
 
