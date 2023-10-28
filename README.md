@@ -32,7 +32,7 @@ like `grep`, `sed`, and `awk`.
 thus all your data is in files created and managed by yourself.
 
 - HardV respects contents of input files as long as possible;
-you could use empty lines and white characters to layout your card files.
+you could use empty lines to layout your card files.
 
 - HardV is a Unix filter in the default mode;
 that makes it easy to be called by other programs.
@@ -245,7 +245,7 @@ In fact, any line starting with `%` is regarded as a card separator.
 Empty cards are ignored.
 In the standard quiz, the leading and trailing empty lines in values are ignored too.
 Thus separators can be used as comments,
-and you could add empty lines and white characters for readability,
+and you could add empty lines for readability,
 demonstrated by the following.
 
 	%% This is a card set for hardv(1)
