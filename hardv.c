@@ -74,7 +74,7 @@ int pindent(char *s);
 time_t tmparse(char *s);
 FILE *mkswap(char *fn, char *sn);
 void err(char *s, ...);
-void parserr(char *fn, int lineno, char *s);
+void parserr(char *fn, int ln, char *s);
 void syserr();
 
 int main(int argc, char **argv)
@@ -401,12 +401,11 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 	static char *evsz = "value too large";
 	char lb[LINESZ], k[KEYSZ], v[VALSZ], *vp;
 	struct field *f;
-	int s, n;
-	int ch, nf, nq, na;
-	int kl = -1;	/* starting line of current field */
-	int ol; /* lineno swap */
+	int s, n, ch;
+	int nf, nq, na;
+	int start, kl = -1;
 
-	ol = *lineno;
+	start = *lineno;
 	if (feof(fp))
 		return 0;
 	memset(card, 0, sizeof *card);
@@ -437,7 +436,7 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 			/* successive lines in value */
 			if (!f)
 				parserr(fn, *lineno, "key is expected");
-			if (vp-v >= VALSZ-n)
+			if (vp - v >= VALSZ - n)
 				parserr(fn, *lineno, evsz);
 			vp = stpcpy(vp, lb);
 		} else {
@@ -449,10 +448,8 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 					syserr();
 				if (!(f->val = strdup(v)))
 					syserr();
-				if (!isvalidf(f)) {
-					*lineno = kl;
-					parserr(fn, *lineno, evf);
-				}
+				if (!isvalidf(f))
+					parserr(fn, kl, evf);
 			}
 			kl = *lineno;
 			nf++;
@@ -481,8 +478,8 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 			card->field = f;
 			if (!lb[s])
 				continue;
-			if (vp-v >= VALSZ-(n-s))
-				parserr(fn, *lineno,evsz);
+			if (vp - v >= VALSZ - (n - s))
+				parserr(fn, *lineno, evsz);
 			vp = stpcpy(vp, &lb[s]);
 		}
 	}
@@ -491,15 +488,14 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 	if (f) {
 		if (!(f->key = strdup(k)) || !(f->val = strdup(v)))
 			syserr();
-		if (!isvalidf(f)) {
-			*lineno = kl;
-			parserr(fn, *lineno, evf);
-		}
-		if (nq != 1 || na != 1) {
-			*lineno = ol+card->leadnewl+1;
-			parserr(fn, *lineno, "no mandatory field");
-		}
-		/* fields were installed in the reversed order */
+		if (!isvalidf(f))
+			parserr(fn, kl, evf);
+		if (nq != 1 || na != 1)
+			parserr(
+				fn,
+				start + card->leadnewl + 1,
+				"no mandatory field"
+			);
 		card->field = revfield(card->field);
 	}
 	return 1;
@@ -520,14 +516,14 @@ void dumpcard(FILE *fp, struct card *card)
 		syserr();
 }
 
-void parserr(char *fn, int lineno, char *s)
+void parserr(char *fn, int ln, char *s)
 {
 	fprintf(
 		stderr,
 		"%s: %s: line %d: %s\n",
 		progname,
 		fn,
-		lineno,
+		ln,
 		s
 	);
 	exit(1);
@@ -577,12 +573,16 @@ int isnow(struct card *card, time_t now, int exact)
 	memcpy(&theday, localtime(&next), sizeof theday);
 	if (today.tm_year > theday.tm_year)
 		return 1;
-	if (today.tm_year == theday.tm_year
-		&& today.tm_mon > theday.tm_mon)
+	if (
+		today.tm_year == theday.tm_year
+		&& today.tm_mon > theday.tm_mon
+	)
 		return 1;
-	if (today.tm_year == theday.tm_year
+	if (
+		today.tm_year == theday.tm_year
 		&& today.tm_mon == theday.tm_mon
-		&& today.tm_mday >= theday.tm_mday)
+		&& today.tm_mday >= theday.tm_mday
+	)
 		return 1;
 	return 0;
 }
