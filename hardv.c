@@ -51,8 +51,8 @@ struct card {
 char *progname;
 
 void learn(char *fn, time_t now, struct opt opt);
-void help(FILE *fp, int ret);
-void version(FILE *fp, int ret);
+void help(void);
+void version(void);
 int stdquiz(struct card *card, time_t now, int card1);
 int modquiz(struct card *card, time_t now, int card1);
 void dump(struct card *ctab, int n, FILE *fp, char *fn);
@@ -86,9 +86,9 @@ int main(int argc, char **argv)
 	progname = argv[0];
 	srand(getpid()^time(NULL));
 	if (argc > 1 && !strcmp(argv[1], "--help"))
-		help(stdout, 0);
+		help();
 	if (argc > 1 && !strcmp(argv[1], "--version"))
-		version(stdout, 0);
+		version();
 	if ((now = tmparse(getenv("HARDV_NOW"))) <= 0)
 		time(&now);
 	memset(&opt, 0, sizeof opt);
@@ -103,7 +103,11 @@ int main(int argc, char **argv)
 			break;
 		case 'n':
 			if ((opt.maxn = atoi(optarg)) <= 0)
-				help(stderr, 1);
+				err(
+					"Not valid positive integer: "
+						"%s\n",
+					optarg
+				);
 			break;
 		default:
 			return 1;
@@ -117,38 +121,34 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void help(FILE *fp, int ret)
+void help(void)
 {
-	fputs("Usage:\n", fp);
-	fprintf(fp, "\t%s [options] FILE...\n", progname);
-	fprintf(fp, "\t%s --help|--version\n", progname);
-	fputs("Options:\n", fp);
-	fputs("\t-e	enable exact quiz time\n", fp);
-	fputs("\t-r	randomize the quiz order within a file\n", fp);
-	fputs("\t-n N	quiz at most N cards\n", fp);
-	fputs("\t--help	print the brief help\n", fp);
-	fputs("\t--version\n", fp);
-	fputs("\t	print the version information\n", fp);
-	exit(ret);
+	puts("Usage:\n");
+	printf("\t%s [options] FILE...\n", progname);
+	printf("\t%s --help|--version\n", progname);
+	puts("Options:");
+	puts("	-e	enable exact quiz time");
+	puts("	-r	randomize the quiz order within a file");
+	puts("	-n N	quiz at most N cards");
+	puts("	--help	print the brief help");
+	puts("	--version");
+	puts("		print the version information");
+	exit(0);
 }
 
-void version(FILE *fp, int ret)
+void version(void)
 {
-	fputs("HardV 4.0.1 <https://github.com/dongyx/hardv>\n", fp);
-	fputs(
-		"Copyright (c) "
-		"2022 DONG Yuxuan <https://www.dyx.name>\n",
-		fp
-	);
-	fputc('\n', fp);
-	fprintf(fp, "NLINE:	%d\n", NLINE);
-	fprintf(fp, "LINESZ:	%d\n", LINESZ);
-	fprintf(fp, "NCARD:	%d\n", NCARD);
-	fprintf(fp, "NFIELD:	%d\n", NFIELD);
-	fprintf(fp, "KEYSZ:	%d\n", KEYSZ);
-	fprintf(fp, "VALSZ:	%d\n", VALSZ);
-	fprintf(fp, "PATHSZ:	%d\n", PATHSZ);
-	exit(ret);
+	puts("HardV 4.0.2 <https://github.com/dongyx/hardv>");
+	puts("Copyright (c) 2022 DONG Yuxuan <https://www.dyx.name>");
+	putchar('\n');
+	printf("NLINE:	%d\n", NLINE);
+	printf("LINESZ:	%d\n", LINESZ);
+	printf("NCARD:	%d\n", NCARD);
+	printf("NFIELD:	%d\n", NFIELD);
+	printf("KEYSZ:	%d\n", KEYSZ);
+	printf("VALSZ:	%d\n", VALSZ);
+	printf("PATHSZ:	%d\n", PATHSZ);
+	exit(0);
 }
 
 void learn(char *fn, time_t now, struct opt opt)
@@ -390,7 +390,6 @@ void setn(struct card *card, time_t now)
 	setv(card, NEXT, timev(now + DAY, buf, VALSZ));
 }
 
-/* return 1 for success, 0 for EOF */
 int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 {
 	static char *enl = "Too many lines";
@@ -524,7 +523,7 @@ void parserr(char *fn, int ln, char *s)
 		ln,
 		s
 	);
-	exit(1);
+	exit(-1);
 }
 
 void destrcard(struct card *card)
@@ -662,13 +661,13 @@ void err(char *fmt, ...)
 	fprintf(stderr, "%s: ", progname);
 	vfprintf(stderr, fmt, ap);
 	va_end(ap);
-	exit(1);
+	exit(-1);
 }
 
 void syserr()
 {
 	perror(progname);
-	exit(1);
+	exit(-1);
 }
 
 time_t getdiff(struct card *card, time_t now)
