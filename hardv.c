@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <limits.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <fcntl.h>
@@ -18,7 +19,7 @@
 #define SHELL	"/bin/sh"
 #define DAY	(60*60*24)
 #define PATHSZ	32767
-#define NLINE	32767
+#define NLINE	INT_MAX
 #define LINESZ	32767
 #define NCARD	32767
 #define NFIELD	16
