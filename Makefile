@@ -11,17 +11,17 @@ all = hardv hardv.1
 all: $(all)
 
 hardv: hardv.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o hardv hardv.c
 
 hardv.1: hardv.1.s hardv
 	@echo building manpage...
 	@set -e; \
-	cp $< $@; \
-	printf '\n.SH VERSION\n\n' >>$@; \
-	printf '.nf\n' >>$@; \
-	printf 'HardV ' >>$@; \
-	./hardv --version | head -n1 | cut -d' ' -f2 >>$@; \
-	printf '.fi\n' >>$@;
+	cp hardv.1.s hardv.1; \
+	printf '\n.SH VERSION\n\n' >>hardv.1; \
+	printf '.nf\n' >>hardv.1; \
+	printf 'HardV ' >>hardv.1; \
+	./hardv --version | head -n1 | cut -d' ' -f2 >>hardv.1; \
+	printf '.fi\n' >>hardv.1;
 
 test: $(all)
 	@set -e; \
