@@ -590,8 +590,8 @@ void shuf(struct card *a[], int n)
 	struct card *t;
 	int i, j;
 
-	for (i=0; i<n; i++) {
-		j = i + rand()%(n-i);
+	for (i = 0; i < n; i++) {
+		j = i + rand() % (n - i);
 		t = a[i];
 		a[i] = a[j];
 		a[j] = t;
@@ -641,8 +641,7 @@ time_t tmparse(char *s)
 
 struct field *revfield(struct field *f)
 {
-	struct field *r;
-	struct field *swp;
+	struct field *r, *swp;
 
 	/* r points to the reversed part, f points to the left part */
 	r = NULL;
