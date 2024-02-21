@@ -51,7 +51,7 @@ struct card {
 
 char *progname;
 
-void learn(char *fn, time_t now, struct opt opt);
+void learn(char *fn, time_t now, struct opt *opt);
 void help(void);
 void version(void);
 int stdquiz(struct card *card, time_t now, int card1);
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 	if (argc <= 0)
 		err("File operand expected\n");
 	while (*argv)
-		learn(*argv++, now, opt);
+		learn(*argv++, now, &opt);
 	return 0;
 }
 
@@ -152,7 +152,7 @@ void version(void)
 	exit(0);
 }
 
-void learn(char *fn, time_t now, struct opt opt)
+void learn(char *fn, time_t now, struct opt *opt)
 {
 	static int card1 = 1;
 	struct card ctab[NCARD];
@@ -190,11 +190,11 @@ void learn(char *fn, time_t now, struct opt opt)
 		err("Too many cards in %s\n", fn);
 	np = 0;
 	for (card = ctab; card < ctab + nc; card++)
-		if (card->field && isnow(card, now, opt.exact))
+		if (card->field && isnow(card, now, opt->exact))
 			plan[np++] = card;
-	if (opt.rand)
+	if (opt->rand)
 		shuf(plan, np);
-	for (i = 0; opt.maxn && i < np; i++) {
+	for (i = 0; opt->maxn && i < np; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
 			dirty = modquiz(card, now, card1);
@@ -202,8 +202,8 @@ void learn(char *fn, time_t now, struct opt opt)
 			dirty = stdquiz(card, now, card1);
 		if (dirty)
 			dump(ctab, nc, fp, sn);
-		if (opt.maxn > 0)
-			opt.maxn--;
+		if (opt->maxn > 0)
+			opt->maxn--;
 		card1 = 0;
 	}
 	for (card = ctab; card < ctab + nc; card++)
