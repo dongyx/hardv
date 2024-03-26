@@ -47,19 +47,20 @@ struct card {
 	int leadnewl;
 	struct field *field;
 	char *sep;
+	char *filepath;
 };
 
 char *progname;
 
-void learn(char *fn, time_t now, struct opt *opt);
+int loadctab(struct card *ctab, char *path);
+void learn(struct card *ctab, int ncard, time_t now, struct opt *opt);
 void help(void);
 void version(void);
 int stdquiz(struct card *card, time_t now, int card1);
 int modquiz(struct card *card, time_t now, int card1);
-void dump(struct card *ctab, int n, FILE *fp, char *fn);
+void dump(struct card *ctab, int n, char *path);
 int loadcard(char *fn, FILE *fp, int *lineno, struct card *card);
 void dumpcard(FILE *fp, struct card *card);
-void destrcard(struct card *card);
 void shuf(struct card *a[], int n);
 void sety(struct card *card, time_t now);
 void setn(struct card *card, time_t now);
@@ -73,15 +74,18 @@ int isnow(struct card *card, time_t now, int exact);
 char *normv(char *s, char *buf, int n);
 int pindent(char *s);
 time_t tmparse(char *s);
-char *swapname(char *sn, char *fn, int n);
+char *swapname(char *sn, char *fn);
 void err(char *s, ...);
 void parserr(char *fn, int ln, char *s);
 void syserr();
 
 int main(int argc, char **argv)
 {
+	static struct card ctab[NCARD];
+	static int ncard;
 	struct opt opt;
-	int ch, *sig;
+	struct flock lock;
+	int n, ch, *sig;
 	time_t now;
 
 	progname = argv[0];
@@ -117,8 +121,23 @@ int main(int argc, char **argv)
 	argc -= optind;
 	if (argc <= 0)
 		err("File operand expected\n");
-	while (*argv)
-		learn(*argv++, now, &opt);
+	for (; *argv != NULL; argv++) {
+		int fd;
+
+		if ((fd = open(*argv, O_RDWR)) == -1)
+			syserr();
+		lock.l_type = F_WRLCK;
+		lock.l_whence = SEEK_SET;
+		lock.l_start = lock.l_len = 0;
+		if (fcntl(fd, F_SETLK, &lock) == -1) {
+			if (errno == EAGAIN || errno == EACCES)
+				err("%s: Other process is accessing\n",
+					*argv);
+			syserr();
+		}
+		ncard += loadctab(&ctab[ncard], *argv);
+	}
+	learn(ctab, ncard, now, &opt);
 	return 0;
 }
 
@@ -129,7 +148,7 @@ void help(void)
 	printf("\t%s --help|--version\n", progname);
 	puts("Options:");
 	puts("	-e	enable exact quiz time");
-	puts("	-r	randomize the quiz order within a file");
+	puts("	-r	randomize the quiz order");
 	puts("	-n N	quiz at most N cards");
 	puts("	--help	print the brief help");
 	puts("	--version");
@@ -139,7 +158,7 @@ void help(void)
 
 void version(void)
 {
-	puts("HardV 4.0.2 <https://github.com/dongyx/hardv>");
+	puts("HardV 5.0.0-alpha.1 <https://github.com/dongyx/hardv>");
 	puts("Copyright (c) 2022 DONG Yuxuan <https://www.dyx.name>");
 	putchar('\n');
 	printf("NLINE:	%d\n", NLINE);
@@ -152,68 +171,54 @@ void version(void)
 	exit(0);
 }
 
-void learn(char *fn, time_t now, struct opt *opt)
+int loadctab(struct card *ctab, char *path)
+{
+	FILE *in;
+	int n, ln;
+
+	in = fopen(path, "r");
+	if (in == NULL)
+		syserr();
+	ln = 0;
+	n = 0;
+	while (n < NCARD && loadcard(path, in, &ln, &ctab[n]))
+		n++;
+	if (!feof(in))
+		err("Too many cards\n");
+	return n;
+}
+
+void learn(struct card *ctab, int ncard, time_t now, struct opt *opt)
 {
 	static int card1 = 1;
-	struct card ctab[NCARD];
 	struct card *plan[NCARD];
 	struct card *card;
-	char sn[PATHSZ];
-	int nc, np, i, dirty, lineno;
-	struct flock lock;
-	FILE *fp;
+	int n, i, dirty;
 
-	if (!(fp = fopen(fn, "r+")))
-		err("%s: %s\n", fn, strerror(errno));
-	lock.l_type = F_WRLCK;
-	lock.l_whence = SEEK_SET;
-	lock.l_start = lock.l_len = 0;
-	if (fcntl(fileno(fp), F_SETLK, &lock) == -1) {
-		if (errno == EAGAIN || errno == EACCES)
-			err("%s: Other process is accessing\n", fn);
-		syserr();
-	}
-	if (!access(swapname(sn, fn, PATHSZ), F_OK))
-		err(
-			"Swap file detected: %s\n"
-			"This may be caused by a previous crash. "
-			"You should check the swap file "
-			"to recover the data "
-			"then delete the swap file.\n",
-			sn
-		);
-	lineno = 0;
-	nc = 0;
-	while (nc < NCARD && loadcard(fn, fp, &lineno, &ctab[nc]))
-		nc++;
-	if (!feof(fp))
-		err("Too many cards in %s\n", fn);
-	np = 0;
-	for (card = ctab; card < ctab + nc; card++)
+	n = 0;
+	for (card = ctab; card < &ctab[ncard]; card++)
 		if (card->field && isnow(card, now, opt->exact))
-			plan[np++] = card;
+			plan[n++] = card;
 	if (opt->rand)
-		shuf(plan, np);
-	for (i = 0; opt->maxn && i < np; i++) {
+		shuf(plan, n);
+	for (i = 0; opt->maxn != 0 && i < n; i++) {
 		card = plan[i];
 		if (getv(card, MOD))
 			dirty = modquiz(card, now, card1);
 		else
 			dirty = stdquiz(card, now, card1);
 		if (dirty)
-			dump(ctab, nc, fp, sn);
+			dump(ctab, ncard, card->filepath);
 		if (opt->maxn > 0)
 			opt->maxn--;
 		card1 = 0;
 	}
-	for (card = ctab; card < ctab + nc; card++)
-		destrcard(card);
-	fclose(fp);
 }
 
-void dump(struct card *ctab, int n, FILE *fp, char *sn)
+void dump(struct card *ctab, int n, char *path)
 {
-	FILE *sp;
+	char sn[PATHSZ];
+	FILE *fp, *sp;
 	int fd;
 	struct card *card;
 	sigset_t bset, oset;
@@ -225,26 +230,25 @@ void dump(struct card *ctab, int n, FILE *fp, char *sn)
 	sigaddset(&bset, SIGQUIT);
 	sigaddset(&bset, SIGTSTP);
 	sigprocmask(SIG_BLOCK, &bset, &oset);
+	swapname(sn, path);
 	if ((fd = open(sn, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1)
 		err("%s: %s\n", sn, strerror(errno));
 	if (!(sp = fdopen(fd, "w")))
 		syserr();
-	for (card = ctab; card < ctab + n; card++)
-		dumpcard(sp, card);
+	for (card = ctab; card < ctab+n; card++)
+		if (strcmp(card->filepath, path) == 0)
+			dumpcard(sp, card);
 	if (
 		fflush(sp) == EOF ||
 		fsync(fileno(sp)) == -1
 	)
 		syserr();
 	fclose(sp);
-	if (
-		fseek(fp, 0, SEEK_SET) == -1 ||
-		fflush(fp) == EOF ||
-		ftruncate(fileno(fp), 0) == -1
-	)
+	if ((fp = fopen(path, "w")) == NULL)
 		syserr();
-	for (card = ctab; card < ctab + n; card++)
-		dumpcard(fp, card);
+	for (card = ctab; card < ctab+n; card++)
+		if (strcmp(card->filepath, path) == 0)
+			dumpcard(fp, card);
 	if (
 		fflush(fp) == EOF ||
 		fsync(fileno(fp)) == -1
@@ -255,7 +259,7 @@ void dump(struct card *ctab, int n, FILE *fp, char *sn)
 	sigprocmask(SIG_SETMASK, &oset, NULL);
 }
 
-char *swapname(char *sn, char *fn, int n)
+char *swapname(char *sn, char *fn)
 {
 	static char *epsz = "File path too long\n";
 	char buf[PATHSZ], dn[PATHSZ], *bn;
@@ -265,7 +269,7 @@ char *swapname(char *sn, char *fn, int n)
 		err(epsz);
 	strcpy(dn, dirname(buf));
 	bn = basename(strcpy(buf, fn));
-	if (snprintf(sn, n, "%s/.%s.swp", dn, bn) >= n)
+	if (snprintf(sn, PATHSZ, "%s/.%s.swp", dn, bn) >= PATHSZ)
 		err(epsz);
 	return sn;
 }
@@ -496,6 +500,8 @@ int loadcard(char *fn, FILE *fp, int *lineno, struct card *card)
 			);
 		card->field = revfield(card->field);
 	}
+	if ((card->filepath = strdup(fn)) == NULL)
+		syserr();
 	return 1;
 }
 
@@ -525,19 +531,6 @@ void parserr(char *fn, int ln, char *s)
 		s
 	);
 	exit(-1);
-}
-
-void destrcard(struct card *card)
-{
-	struct field *i, *j;
-
-	free(card->sep);
-	for (i = card->field; i != NULL; i = j) {
-		free(i->key);
-		free(i->val);
-		j = i->next;
-		free(i);
-	}
 }
 
 char *normv(char *s, char *buf, int n)

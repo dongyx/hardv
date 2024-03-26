@@ -224,7 +224,7 @@ is earlier than or within today will be quizzed.
 
 .TP
 \fB-r
-Quiz cards within a file in a random order.
+Quiz cards in a random order.
 
 .TP
 \fB-n \fIn\fR
