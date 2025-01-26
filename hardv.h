@@ -36,11 +36,11 @@ struct card {
 
 /* main.c */
 extern struct option opt;
-extern long now;
+extern time_t now;
 
 /* ctab.c */
-extern struct card ctab[MAXN];
-extern int ncards;
+extern struct card *ctab;
+extern size_t ncards;
 void ctabload(char *file);
 void ctabdump(char *file);
 
@@ -56,5 +56,6 @@ void parsedone(void);
 extern char *progname;
 
 /* utils.c */
+time_t elapsecs(char *buf);
 void err(char *fmt, ...);
 void syserr(void);

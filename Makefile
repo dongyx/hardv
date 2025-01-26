@@ -1,29 +1,31 @@
-.PHONY: all clean install test lint fuzz
-
-CC = cc
-INSTALL = install
 prefix = /usr/local
 bindir = $(prefix)/bin
-datarootdir = $(prefix)/share
-mandir = $(datarootdir)/man
-all = hardv hardv.1
+libexecdir = $(prefix)/libexec
 
-all: $(all)
-
-hardv: hardv.c
-	$(CC) $(CFLAGS) -o hardv hardv.c
-
-hardv.1: hardv.1.s hardv
-	@echo building manpage...
-	@set -e; \
-	cp hardv.1.s hardv.1; \
-	printf '\n.SH VERSION\n\n' >>hardv.1; \
-	printf '.nf\n' >>hardv.1; \
-	printf 'HardV ' >>hardv.1; \
-	./hardv --version | head -n1 | cut -d' ' -f2 >>hardv.1; \
-	printf '.fi\n' >>hardv.1;
-
-test: $(all)
+.PHONY: install clean test
+all: hardv stdq
+hardv: ctab.o learn.o main.o parse.o utils.o
+	$(CC) $(CFLAGS) -o hardv ctab.o learn.o main.o parse.o utils.o
+stdq: stdq.c utils.c hardv.h
+	$(CC) $(CFLAGS) -o stdq stdq.c utils.c
+ctab.o: ctab.c hardv.h
+	$(CC) -c $(CFLAGS) ctab.c
+learn.o: learn.c hardv.h
+	$(CC) -c -D LIBEXECDIR='"$(libexecdir)"' $(CFLAGS) learn.c
+main.o: main.c hardv.h
+	$(CC) -c $(CFLAGS) main.c
+parse.o: parse.c hardv.h
+	$(CC) -c $(CFLAGS) parse.c
+utils.o: utils.c hardv.h
+	$(CC) -c $(CFLAGS) utils.c
+install: all
+	mkdir -p $(DESTDIR)$(bindir)
+	mkdir -p $(DESTDIR)$(libexecdir)/hardv
+	cp hardv $(DESTDIR)$(bindir)/
+	cp stdq $(DESTDIR)$(libexecdir)/hardv/
+clean:
+	rm -Rf *.o hardv stdq
+test: all
 	@set -e; \
 	PATH="`pwd`:$$PATH"; \
 	for i in test/*; do \
@@ -34,44 +36,3 @@ test: $(all)
 		cd ../..; \
 	done; \
 	echo all tests passed;
-
-clean:
-	@rm -rf $(all) lint fuzz *.tmp
-	@for i in test/*; do \
-		cd $$i;	\
-		./clean; \
-		cd ../..; \
-	done
-		
-install: $(all)
-	@$(INSTALL) -d $(bindir)
-	$(INSTALL) hardv $(bindir)
-	@$(INSTALL) -d $(mandir)/man1
-	$(INSTALL) hardv.1 $(mandir)/man1
-
-lint:
-	@set -e; \
-	rm -rf lint; \
-	mkdir -p lint; \
-	cp hardv.c hardv.1.s Makefile lint; \
-	cd lint; \
-	make \
-	'CFLAGS= \
-	-pedantic-errors \
-	-Wextra \
-	-Wno-error'
-
-fuzz:
-	@set -e; \
-	rm -rf fuzz; \
-	mkdir -p fuzz; \
-	cp -r hardv.c hardv.1.s test Makefile fuzz; \
-	cd fuzz; \
-	make test \
-	'CFLAGS= \
-	-pedantic-errors \
-	-Wextra \
-	-Wno-error \
-	-O3 \
-	-fno-sanitize-recover \
-	-fsanitize=address,undefined'

@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <limits.h>
 #include "hardv.h"
 
-struct card ctab[MAXN];
-int ncards;
+struct card *ctab;
+size_t ncards;
 
 static void
 dump(FILE *fp, struct card *card)
@@ -23,11 +24,13 @@ dump(FILE *fp, struct card *card)
 void
 ctabload(char *file)
 {
+	static size_t cap = 1;
 	struct card buf;
 
+	if (ctab==NULL && !(ctab=calloc(cap,sizeof *ctab))) syserr();
 	parseinit(file);
 	while (parsecard(&buf)) {
-		if (ncards == MAXN) err("too many cards");
+		if (ncards==cap && !(ctab=realloc(ctab,(cap*=2)*sizeof(*ctab)))) syserr();
 		ctab[ncards++] = buf;
 	}
 	parsedone();

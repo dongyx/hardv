@@ -1,38 +1,31 @@
-#include <limits.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <time.h>
 #include "hardv.h"
 
 static char *path;
 static FILE *fp;
-static int lineno;
+static size_t lineno;
 
 static void
 invalid(char *msg)
 {
-	err("%s, line %d: %s\n", path, lineno, msg);
-	exit(1);
-}
-
-static void
-feedline(void)
-{
-	if (lineno == INT_MAX) invalid("too many lines");
-	lineno++;
+	err("%s, line %zu: %s", path, lineno, msg);
 }
 
 static char *
 parsehead(void)
 {
-	char ch, buf[MAXN], *s;
-	int n;
+	char buf[MAXN], *s;
+	int ch;
+	size_t n;
 
 	n = 0;
-	while (isspace((ch=getc(fp)))) {
+	while (isspace((unsigned char)(ch=getc(fp)))) {
 		if (n+1 == MAXN) err("head too large");
-		if ((buf[n++]=ch) == '\n') feedline();
+		if ((buf[n++]=ch) == '\n') lineno++;
 	}
 	ungetc(ch, fp);
 	buf[n] = '\0';
@@ -45,14 +38,15 @@ parsehead(void)
 static char *
 parsekey(void)
 {
-	char buf[MAXN], ch, *s;
-	int n;
+	char buf[MAXN], *s;
+	int ch;
+	size_t n;
 
 	n = 0;
 	while ((ch=getc(fp)) != EOF) {
 		if (!strchr(KCHAR, ch)) break;
 		if (n+1 == MAXN) err("key too large");
-		if ((buf[n++]=ch) == '\n') feedline();
+		if ((buf[n++]=ch) == '\n') lineno++;
 	}
 	ungetc(ch, fp);
 	buf[n] = '\0';
@@ -64,15 +58,17 @@ parsekey(void)
 static char *
 parseval(void)
 {
-	char buf[MAXN], ch, ahead, *s;
-	int n;
+	char buf[MAXN], ahead, *s;
+	int ch;
+	size_t n;
 
 	ch = ungetc(getc(fp), fp);
+	if (ch == EOF) return NULL;
 	if (ch != '\t' && ch != '\n') invalid("expect tab or newline");
 	n = 0;
 	while ((ch=getc(fp)) != EOF) {
 		if (n+1 == MAXN) err("value too large");
-		if ((buf[n++]=ch) == '\n') feedline();
+		if ((buf[n++]=ch) == '\n') lineno++;
 		ahead = ungetc(getc(fp), fp);
 		if (ch == '\n' && ahead != '\t' && ahead != '\n')
 			break;
@@ -86,25 +82,23 @@ parseval(void)
 static struct field *
 parsefield(void)
 {
-	struct field *p, *q;
+	struct field *p;
 	char *key, *val;
 
-	p = NULL;
-	while ((key=parsekey()) != NULL) {
-		val = parseval();
-		if ((q=malloc(sizeof *q)) == NULL) syserr();
-		q->key = key;
-		q->val = val;
-		q->next = p;
-		p = q;
-	}
+	if (!(key=parsekey())) return NULL;
+	val = parseval();
+	if ((p=malloc(sizeof *p)) == NULL) syserr();
+	p->key = key;
+	p->val = val;
+	p->next = NULL;
 	return p;
 }
 
 static char *
 parsetail(void)
 {
-	int ch, cap, n;
+	size_t n;
+	int ch;
 	char buf[MAXN], *s;
 
 	ch = ungetc(getc(fp), fp);
@@ -114,7 +108,7 @@ parsetail(void)
 	while ((ch=getc(fp)) != EOF) {
 		if (n+1 == MAXN) err("tail too large");
 		if ((buf[n++]=ch) == '\n') {
-			feedline();
+			lineno++;
 			break;
 		}
 	}
@@ -159,7 +153,9 @@ parsecard(struct card *dst)
 {
 	struct field *f;
 
+	if (!(dst->file=strdup(path))) syserr();
 	dst->head = parsehead();
+	dst->field = NULL;
 	while ((f=parsefield()) != NULL) {
 		f->next = dst->field;
 		dst->field = f;
