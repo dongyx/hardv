@@ -28,6 +28,9 @@ main(int argc, char **argv)
 	char *act;
 
 	progname = argv[0];
+	setvbuf(stdin, NULL, _IONBF, 0);
+	if (strcmp(getenv("HARDV_FIRST"), "1"))
+		putchar('\n');
 	putchar('Q');
 	fputs(getenv("HARDV_F_Q"), stdout);
 	do {

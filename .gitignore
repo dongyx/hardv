@@ -8,3 +8,5 @@
 *.d
 *.o
 release
+*.dSym
+/build

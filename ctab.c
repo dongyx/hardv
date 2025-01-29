@@ -30,7 +30,8 @@ ctabload(char *file)
 	if (ctab==NULL && !(ctab=calloc(cap,sizeof *ctab))) syserr();
 	parseinit(file);
 	while (parsecard(&buf)) {
-		if (ncards==cap && !(ctab=realloc(ctab,(cap*=2)*sizeof(*ctab)))) syserr();
+		if (ncards==cap && !(ctab=realloc(ctab,(cap*=2)*sizeof(*ctab))))
+			syserr();
 		ctab[ncards++] = buf;
 	}
 	parsedone();

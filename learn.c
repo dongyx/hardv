@@ -81,10 +81,13 @@ isnow(struct card *card)
 static char *
 chosemod(struct card *card)
 {
+	static char buf[MAXN];
 	char *mod;
 
 	if (!(mod=getv(card,MOD)))
-		mod = "exec " LIBEXECDIR "/hardv/stdq";
+		return "exec " LIBEXECDIR "/hardv/stdq";
+	normv(buf, mod);
+	return buf;
 	return mod;
 }
 
@@ -135,7 +138,7 @@ settime(struct card *card, char *k, time_t v)
 	struct tm *t;
 
 	t = localtime(&v);
-	strftime(buf, sizeof buf, "%Y-%m-%d %H:%M:%S %z", t);
+	strftime(buf, sizeof buf, "\t%Y-%m-%d %H:%M:%S %z\n", t);
 	setv(card, k, buf);
 }
 
@@ -144,12 +147,13 @@ sety(struct card *card)
 {
 	time_t prev, next, diff;
 
-	prev = elapsecs(getv(card, PREV));
-	next = elapsecs(getv(card, NEXT));
+	prev = getv(card,PREV)?elapsecs(getv(card,PREV)):now;
+	next = getv(card,NEXT)?elapsecs(getv(card,NEXT)):now;
 	diff = next - prev;
 	if (diff < 86400) diff = 86400;
-	settime(card, NEXT, now+2*diff);
 	settime(card, PREV, now);
+	settime(card, NEXT, now+2*diff);
+	ctabdump(card->file);
 }
 
 static void
@@ -157,6 +161,7 @@ setn(struct card *card)
 {
 	settime(card, PREV, now);
 	settime(card, NEXT, now+86400);
+	ctabdump(card->file);
 }
 
 static void

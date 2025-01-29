@@ -6,16 +6,6 @@
 #include <time.h>
 #include "hardv.h"
 
-static void
-chtz(char *tz)
-{
-	if (tz)
-		setenv("TZ", tz, 1);
-	else
-		unsetenv("TZ");
-	tzset();
-}
-
 void
 syserr()
 {
@@ -39,22 +29,21 @@ err(char *fmt, ...)
 time_t
 elapsecs(char *buf)
 {
-	time_t secs;
+	unsigned hr, mi;
+	char sg, *s;
 	struct tm tm;
-	char tz[MAXN], *oldtz, *p;
+	time_t ck;
 
-	if (!buf) return 0;
-	if (!(p=strptime(buf, " %Y-%m-%d %H:%M:%S", &tm)))
+	s = buf;
+	if (!s) return 0;
+	while (isspace((unsigned char)*s)) s++;
+	if (!(s=strptime(s, "%Y-%m-%d %H:%M:%S", &tm)))
 		err("invalid time: %s", buf);
-	while (isspace((unsigned char)*p)) p++;
-	strcpy(tz, p);
-	if (tz[0] == '+') tz[0] = '-';
-	else if (tz[0] == '-') tz[0] = '+';
-	else err("invalid timezone: %s", buf);
-	oldtz = getenv("TZ");
-	chtz(tz);
-	secs = mktime(&tm);
-	if (secs < 0) err("too early: %s", buf);
-	chtz(oldtz);
-	return secs;
+	if (sscanf(s," %c%2u%2u",&sg,&hr,&mi) != 3)
+		err("invalid time: %s", buf);
+	ck = timegm(&tm);
+	if (sg=='+') ck -= mi*60+hr*3600LU;
+	else if (sg=='-') ck += mi*60+hr*3600LU;
+	else err("invalid time: %s", buf);
+	return ck;
 }
