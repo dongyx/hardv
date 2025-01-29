@@ -12,7 +12,7 @@ time_t now;
 static void
 help(void)
 {
-	puts("Usage:\n");
+	puts("Usage:");
 	printf("\t%s [options] FILE...\n", progname);
 	printf("\t%s --help|--version\n", progname);
 	puts("Options:");
@@ -38,6 +38,7 @@ main(int argc, char **argv)
 {
 	int ch;
 
+	if (argc > 0) progname = argv[0];
 	if (getenv("HARDV_NOW"))
 		now = elapsecs(getenv("HARDV_NOW"));
 	else
@@ -56,11 +57,11 @@ main(int argc, char **argv)
 			opt.maxn = atoi(optarg);
 			break;
 		default:
-			err("invalid option");
+			exit(-1);
 		}
 	argv+=optind, argc-=optind;
-	while (*argv)
-		ctabload(*argv++);
+	if (!argc) err("file operand expected");
+	while (*argv) ctabload(*argv++);
 	learn();
 	return 0;
 }

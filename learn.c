@@ -32,23 +32,13 @@ getv(struct card *card, char *key)
 	return NULL;
 }
 
-static void
-chtz(char *tz)
-{
-	if (tz)
-		setenv("TZ", tz, 1);
-	else
-		unsetenv("TZ");
-	tzset();
-}
-
 static char *
 normv(char *dst, char *src)
 {
 	char *p;
 
 	p = dst;
-	while (*++src)
+	while (src && *++src)
 		if (*src != '\t' || src[-1] != '\n')
 			*p++ = *src;
 	while (p != dst && p[-1] == '\n') --p;
@@ -86,9 +76,7 @@ chosemod(struct card *card)
 
 	if (!(mod=getv(card,MOD)))
 		return "exec " LIBEXECDIR "/hardv/stdq";
-	normv(buf, mod);
-	return buf;
-	return mod;
+	return normv(buf, mod);
 }
 
 static void
@@ -100,7 +88,7 @@ envprepare(struct card *card, int isfirst)
 	for (f=card->field; f; f=f->next) {
 		strcpy(buf, "HARDV_F_");
 		strcat(buf, f->key);
-		if (setenv(buf,f->val,1) == -1) syserr();
+		if (setenv(buf,f->val?f->val:"",1) == -1) syserr();
 	}
 	if (setenv("HARDV_Q",normv(buf,getv(card,Q)),1) == -1) syserr();
 	if (setenv("HARDV_A",normv(buf,getv(card,A)),1) == -1) syserr();

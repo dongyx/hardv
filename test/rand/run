@@ -2,11 +2,11 @@
 
 set -e
 for in in *.in; do
-	tin="${in%.tin}.tin.tmp"
-	out="${in%.in}.out.tmp"
-	rout="${in%.in}.rout.tmp"
-	sout="${in%.in}.sout.tmp"
-	srout="${in%.in}.srout.tmp"
+	tin="`mktemp`"
+	out="`mktemp`"
+	rout="`mktemp`"
+	sout="`mktemp`"
+	srout="`mktemp`"
 	cp $in $tin
 	while :; do
 		echo

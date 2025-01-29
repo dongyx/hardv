@@ -41,7 +41,7 @@ Eg. You could pipe HardV to a voice synthesizer to make an audio quiz.
 **Table of Contents**
 
 * [Getting Started](#getting-started)
-* [Customize Quizzes](#customize-quizzes)
+* [Customizing Quizzes](#customizing-quizzes)
 * [Installation](#installation)
 * [Input Format](#input-format)
 * [Documentation](#documentation)
@@ -90,7 +90,7 @@ We could use HardV to run a quiz.
 
 		0x80
 
-	Do you recall? (y/n/s)
+	Do you recall? ([y]es / [n]o / [s]kip)
 	y
 
 	...
@@ -112,9 +112,9 @@ See the man page `hardv(1)` for detail.
 
 To customize the quiz,
 a `MOD` field is required to be added to the card.
-See the [*Customize Quizzes*](#customize-quizzes) section.
+See the [*Customizing Quizzes*](#customizing-quizzes) section.
 
-Customize Quizzes
+Customizing Quizzes
 -----------------
 
 If a card contains the `MOD` field,
@@ -230,8 +230,7 @@ The man page `hardv(1)` is shipped with the installation.
 Input Format
 ------------
 
-A card is a key-value structure contains at least two fields `Q`
-and `A`.
+A card is a key-value dictionary.
 
 The key and the value are separated by a tab character or a newline
 character.

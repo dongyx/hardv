@@ -136,8 +136,7 @@ take the \fBs\fR action in the standard quiz procedure.
 
 .SH INPUT FORMAT
 
-A card is a key-value structure contains at least two fields \fBQ\fR
-and \fBA\fR.
+A card is a key-value dictionary.
 
 The \fBQ\fR field represents the front side of a physical card.
 It's usually a question or a clue.
@@ -249,40 +248,6 @@ If this environment variable is set,
 instead of the current system time.
 The format of this variable is the same as of
 the \fBPREV\fR and \fBNEXT\fR fields.
-
-.SH LIMITATION
-
-Calling \fBhardv --version\fR prints several building arguments
-which determine the limitation of data.
-
-.TP
-\fBNLINE\fR
-The number of lines in an input file can't exceed \fBNLINE\fR.
-
-.TP
-\fBLINESZ
-A line in input files must be less than \fBLINESZ\fR bytes.
-
-.TP
-\fBNCARD\fR
-The number of cards in an input file can't exceed \fBNCARD\fR.
-This limitation is only enabled while the \fB-d\fR option is specified.
-
-.TP
-\fBNFIELD\fR
-The number of fields in a card can't exceed \fBNFIELD\fR.
-
-.TP
-\fBKEYSZ\fR
-The field key must be less than \fBKEYSZ\fR bytes.
-
-.TP
-\fBVALSZ\fR
-The field value must be less than \fBVALSZ\fR bytes.
-
-.TP
-\fBPATHSZ\fR
-The path of \fIfile\fR must be less than \fBPATHSZ\fR bytes.
 
 .SH FURTHER DOCUMENTATION
 

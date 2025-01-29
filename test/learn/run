@@ -2,7 +2,7 @@
 
 set -e
 for in in *.in; do
-	out=${in%.in}.out.tmp
+	out="`mktemp`"
 	ans=${in%.in}.ans
 	act=${in%.in}.act
 	arg=${in%.in}.arg

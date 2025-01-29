@@ -15,8 +15,8 @@ dump(FILE *fp, struct card *card)
 
 	if (card->head && fputs(card->head, fp) == EOF) syserr();
 	for (p=card->field; p; p=p->next) {
-		if (fputs(p->key, fp) == EOF) syserr();
-		if (fputs(p->val, fp) == EOF) syserr();
+		if (p->key && fputs(p->key, fp) == EOF) syserr();
+		if (p->val && fputs(p->val, fp) == EOF) syserr();
 	}
 	if (card->tail && fputs(card->tail, fp) == EOF) syserr();
 }

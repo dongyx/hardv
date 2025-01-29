@@ -10,3 +10,4 @@
 release
 *.dSym
 /build
+/stdq

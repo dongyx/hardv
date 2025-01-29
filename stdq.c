@@ -22,6 +22,19 @@ getact(void)
 	return buf;
 }
 
+static int
+pindent(char *s)
+{
+	char *sp;
+
+	for (sp = s; *sp ; sp++) {
+		if (sp == s || sp[-1] == '\n')
+			putchar('\t');
+		putchar(*sp);
+	}
+	return sp - s;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -31,24 +44,25 @@ main(int argc, char **argv)
 	setvbuf(stdin, NULL, _IONBF, 0);
 	if (strcmp(getenv("HARDV_FIRST"), "1"))
 		putchar('\n');
-	putchar('Q');
-	fputs(getenv("HARDV_F_Q"), stdout);
+	puts("Q:\n");
+	pindent(getenv("HARDV_Q"));
+	puts("\n");
 	do {
-		puts("press <ENTER> to check the answer");
+		puts("Press <ENTER> to check the answer.");
 		fflush(stdout);
 		act = getact();
 	} while (strcmp(act, ""));
-	putchar('A');
-	fputs(getenv("HARDV_F_A"), stdout);
+	puts("A:\n");
+	pindent(getenv("HARDV_A"));
+	puts("\n");
 	do {
-		puts("recall? ([y]es/[n]o/[s]kip)");
+		puts("Do you recall? ([y]es / [n]o / [s]kip)");
 		fflush(stdout);
 		act = getact();
 	} while (strcmp(act, "y")&&strcmp(act, "n")&&strcmp(act, "s"));
 	switch (*act) {
 	case 'y': return 0;
 	case 'n': return 1;
-	case 's': return 2;
 	}
 	return 2;
 }

@@ -1,14 +1,5 @@
 #define MAXN 65536
 #define KCHAR "abcdefghijklmnopqrstuvwxyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_" 
-#define SHELL	"/bin/sh"
-#define DAY	(60*60*24)
-#define PATHSZ	32767
-#define NLINE	INT_MAX
-#define LINESZ	32767
-#define NCARD	32767
-#define NFIELD	16
-#define KEYSZ	8
-#define VALSZ	32767
 #define Q	"Q"
 #define A	"A"
 #define MOD	"MOD"
@@ -35,6 +26,7 @@ struct card {
 };
 
 /* main.c */
+extern char *progname;
 extern struct option opt;
 extern time_t now;
 
@@ -52,8 +44,6 @@ void parseinit(char *path);
 struct card *parsecard(struct card *dst);
 void parsedone(void);
 
-/* main.c */
-extern char *progname;
 
 /* utils.c */
 time_t elapsecs(char *buf);
