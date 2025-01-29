@@ -279,6 +279,13 @@ Documentation
 Calling `hardv --help` prints a brief help.
 Full description is documented in the man page `hardv(1)`.
 
+Test
+----
+
+Test must be executed after installation.
+
+	$ make test
+
 Credits
 -------
 
