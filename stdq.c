@@ -56,7 +56,7 @@ main(int argc, char **argv)
 	pindent(getenv("HARDV_A"));
 	puts("\n");
 	do {
-		puts("Do you recall? ([y]es / [n]o / [s]kip)");
+		puts("Do you recall? (y/n/s)");
 		fflush(stdout);
 		act = getact();
 	} while (strcmp(act, "y")&&strcmp(act, "n")&&strcmp(act, "s"));

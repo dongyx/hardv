@@ -43,6 +43,7 @@ main(int argc, char **argv)
 		now = elapsecs(getenv("HARDV_NOW"));
 	else
 		now = time(NULL);
+	srand(time(NULL));
 	if (argc>1 && !strcmp(argv[1], "--help")) help();
 	if (argc>1 && !strcmp(argv[1], "--version")) version();
 	while ((ch=getopt(argc,argv,"ern:")) != -1)
