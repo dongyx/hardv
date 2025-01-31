@@ -90,7 +90,7 @@ We could use HardV to run a quiz.
 
 		0x80
 
-	Do you recall? ([y]es / [n]o / [s]kip)
+	Do you recall? (y/n/s)
 	y
 
 	...
