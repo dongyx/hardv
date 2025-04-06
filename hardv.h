@@ -44,7 +44,6 @@ void parseinit(char *path);
 struct card *parsecard(struct card *dst);
 void parsedone(void);
 
-
 /* utils.c */
 time_t elapsecs(char *buf);
 void err(char *fmt, ...);

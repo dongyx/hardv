@@ -6,6 +6,9 @@
 #include <time.h>
 #include "hardv.h"
 
+char *strptime(const char *, const char *, struct tm *);
+time_t timegm(struct tm *);
+
 void
 syserr()
 {
