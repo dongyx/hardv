@@ -32,6 +32,7 @@ hardv.1: hardv hardv.man1
 install: all
 	mkdir -p $(DESTDIR)$(bindir)
 	mkdir -p $(DESTDIR)$(libexecdir)/hardv
+	mkdir -p $(DESTDIR)$(mandir)/man1/
 	cp hardv $(DESTDIR)$(bindir)/
 	cp stdq $(DESTDIR)$(libexecdir)/hardv/
 	cp hardv.1 $(DESTDIR)$(mandir)/man1/
