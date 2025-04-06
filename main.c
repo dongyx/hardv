@@ -28,7 +28,7 @@ help(void)
 static void
 version(void)
 {
-	puts("HardV 5.0.0-alpha.2 <https://github.com/dongyx/hardv>");
+	puts("HardV 5.0.0 <https://github.com/dongyx/hardv>");
 	puts("Copyright (c) 2022 DONG Yuxuan <https://www.dyx.name>");
 	exit(0);
 }
