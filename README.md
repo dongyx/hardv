@@ -40,12 +40,32 @@ Eg. You could pipe HardV to a voice synthesizer to make an audio quiz.
 
 **Table of Contents**
 
+* [Installation](#installation)
 * [Getting Started](#getting-started)
 * [Customizing Quizzes](#customizing-quizzes)
-* [Installation](#installation)
 * [Input Format](#input-format)
 * [Documentation](#documentation)
 * [Credits](#credits)
+
+Installation
+------------
+
+- Choose a version from
+the [release page](https://github.com/dongyx/hardv/releases);
+The latest is always recommended unless otherwise noted in the
+release note.
+
+- Extract the source.
+
+- Execute in the source tree:
+
+	~~~
+	$ make
+	$ sudo make install
+	~~~
+
+`make install` copies files to `/usr/local` by default.
+The man page `hardv(1)` is shipped with the installation.
 
 Getting Started
 ---------------
@@ -206,26 +226,6 @@ This could be very handy if you want to wrap existed programs to a
 HardV mod.
 
 See the man page `hardv(1)` for detail about how to implement a mod.
-
-Installation
-------------
-
-- Choose a version from
-the [release page](https://github.com/dongyx/hardv/releases);
-The latest is always recommended unless otherwise noted in the
-release note.
-
-- Extract the source.
-
-- Execute in the source tree:
-
-	~~~
-	$ make
-	$ sudo make install
-	~~~
-
-`make install` copies files to `/usr/local` by default.
-The man page `hardv(1)` is shipped with the installation.
 
 Input Format
 ------------
