@@ -282,7 +282,7 @@ Full description is documented in the man page `hardv(1)`.
 Test
 ----
 
-Test must be executed after installation.
+Test should only be executed after installation.
 
 	$ make test
 
