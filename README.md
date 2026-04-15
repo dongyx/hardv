@@ -292,6 +292,10 @@ Test should only be executed after installation.
 
 	$ make test
 
+## Related Projects
+
+- Vanya Robertson's [csvtohardv](https://github.com/vanya-robertson/csvtohardv): A program for high-throughput flashcard generation from csv files
+
 ## Credits
 
 HardV was created by [DONG Yuxuan](https://www.dyx.name) in 2022.
