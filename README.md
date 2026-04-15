@@ -1,7 +1,8 @@
-HardV
-=====
+# HardV
 
-HardV is a powerful flashcard program for Linux, macOS and other Unix-like systems.
+## Introduction
+
+HardV is a powerful spaced-repetition flashcard program for Linux, macOS and other Unix-like systems.
 The key features are listed below.
 
 - Almost everything can be customized,
@@ -38,17 +39,27 @@ you could use empty lines to layout your card files.
 that makes it easy to be called by other programs.
 Eg. You could pipe HardV to a voice synthesizer to make an audio quiz.
 
-**Table of Contents**
+## Recognition
 
-* [Installation](#installation)
-* [Getting Started](#getting-started)
-* [Customizing Quizzes](#customizing-quizzes)
-* [Input Format](#input-format)
-* [Documentation](#documentation)
-* [Credits](#credits)
+The following links are external notes, reviews, and mentions related to HardV.
 
-Installation
-------------
+- LinuxLinks: [HardV – terminal-based flashcard tool](https://www.linuxlinks.com/hardv-terminal-based-flashcard-tool/)
+- LinuxLinks: [9 Best Free and Open Source Terminal-Based Flashcard Tools](https://www.linuxlinks.com/best-free-open-source-terminal-based-flashcard-tools/)
+- MEDevel.com: [Top 31 Free Flashcard and SRS Apps for Enhanced Memory Retention to Unlock Your Learning Potential](https://medevel.com/flashcards-open-source-1230/)
+- [Awesome Command Line (CLI/TUI) Programs](https://github.com/toolleeo/awesome-cli-apps-in-a-csv)
+- [The largest Awesome List of CLI/TUI programs](https://github.com/alecarb10/cli-apps)
+
+## Installation
+
+### Guix
+
+HardV is available in GNU Guix.
+
+	$ guix install hardv
+
+See the [Guix package page](https://packages.guix.gnu.org/packages/hardv).
+
+### From Source
 
 - Choose a version from
 the [release page](https://github.com/dongyx/hardv/releases);
@@ -67,8 +78,7 @@ release note.
 `make install` copies files to `/usr/local` by default.
 The man page `hardv(1)` is shipped with the installation.
 
-Getting Started
----------------
+## Getting Started
 
 First of all, let's see the standard quiz of HardV.
 
@@ -134,8 +144,7 @@ To customize the quiz,
 a `MOD` field is required to be added to the card.
 See the [*Customizing Quizzes*](#customizing-quizzes) section.
 
-Customizing Quizzes
------------------
+## Customizing Quizzes
 
 If a card contains the `MOD` field,
 the customized quiz is used.
@@ -227,8 +236,7 @@ HardV mod.
 
 See the man page `hardv(1)` for detail about how to implement a mod.
 
-Input Format
-------------
+## Input Format
 
 A card is a key-value dictionary.
 
@@ -273,21 +281,18 @@ demonstrated by the following.
 See the man page `hardv(1)`
 for the full description of the input format.
 
-Documentation
--------------
+## Documentation
 
 Calling `hardv --help` prints a brief help.
 Full description is documented in the man page `hardv(1)`.
 
-Test
-----
+## Test
 
 Test should only be executed after installation.
 
 	$ make test
 
-Credits
--------
+## Credits
 
 HardV was created by [DONG Yuxuan](https://www.dyx.name) in 2022.
 
